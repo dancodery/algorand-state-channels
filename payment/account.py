@@ -10,13 +10,16 @@ class Account:
     def getAddress(self) -> str:
         return self.addr
 
-    # def getPrivateKey(self) -> str:
-    #     return self.sk
-    #
-    # def getMnemonic(self) -> str:
-    #     return mnemonic.from_private_key(self.sk)
-    #
-    # @classmethod
-    # def FromMnemonic(cls, m: str) -> "Account":
-    #     return cls(mnemonic.to_private_key(m))
-    #
+    def getPrivateKey(self) -> str:
+        return self.sk
+    
+    def getPublicKey(self) -> str:
+        return account.public_key_from_private_key(self.sk)
+    
+    def getMnemonic(self) -> str:
+        return mnemonic.from_private_key(self.sk)
+    
+    @classmethod
+    def FromMnemonic(cls, m: str) -> "Account":
+        return cls(mnemonic.to_private_key(m))
+    
