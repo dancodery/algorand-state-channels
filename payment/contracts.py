@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pyteal import *
+from algosdk import encoding
 import os
 
 FILENAME = "payment"
@@ -8,11 +9,17 @@ FILENAME = "payment"
 def approval_program():
     # Keys for the global key-value state of the smart contract
     # Convenient to define keys here s.t. they can be reused when needed
-    alice_address = Bytes("alice")              # creator and funder of the smart contract
-    bob_address = Bytes("bob")                  # counterparty
-    penalty_reserve = Bytes("penalty_reserve")  # used to penalize expired transaction commitments
+    alice_pubkey = Bytes("alice_pubkey")        # public key of the creator
+    bob_pubkey = Bytes("bob_pubkey")            # public key of the counterparty
+    alice_address = Bytes("alice_address")      # creator and funder of the smart contract
+    bob_address = Bytes("bob_address")          # counterparty
+    
     alice_balance = Bytes("alice_balance")      # part of state; value variable during execution
     bob_balance = Bytes("bob_balance")          # part of state; value variable during execution
+
+    penalty_reserve = Bytes("penalty_reserve")  # used to penalize expired transaction commitments
+    # TODO add dispute timeout
+
 
     # closes the channel and pays out the funds to the respective parties
     @Subroutine(TealType.none)
@@ -67,6 +74,8 @@ def approval_program():
 
     # Initialization
     on_create = Seq(
+        # The arguments contain bob address, and penalty reserve
+        Assert(Txn.application_args.length() == Int(2)),
         # Set alice to sender of initial tx
         App.globalPut(alice_address, Txn.sender()),
         App.globalPut(bob_address, Txn.application_args[0]),
