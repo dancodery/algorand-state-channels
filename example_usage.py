@@ -42,7 +42,7 @@ if __name__ == "__main__":
 	)
 	
 	channelCapacity = 2_000_000_000
-	print(f"Alice is setting up and funding the Payment Contract with {channelCapacity/1000_000} Algos...")
+	print(f"Alice is setting up and funding the Payment Contract with {channelCapacity} microAlgos...")
 	setupPaymentApp(
 		client=client,
 		appID=appID,
@@ -53,41 +53,48 @@ if __name__ == "__main__":
 
 	amount1 = 300
 	print(f"Alice is sending {amount1} microAlgos to Bob...")
-	transact(
+	(aliceBalance, bobBalance) = transact(
 		client=client,
 		appID=appID,
 		sender=alice,
 		amount=amount1,
 	)
+	print(f"Alice's balance is now {aliceBalance} microAlgos and Bob's balance is now {bobBalance} microAlgos\n")
 
 	amount2 = 50
 	print(f"Bob tries sending {amount2} microAlgos to Alice...")
 	try:
-		transact(
+		(aliceBalance, bobBalance) = transact(
 			client=client,
 			appID=appID,
 			sender=bob,
 			amount=amount2,
 		)
+		print(f"Alice's balance is still {aliceBalance} microAlgos and Bob's balance is still {bobBalance} microAlgos\n")
 	except Exception as e:
 		print("\n Bob's transaction failed:", e)
 
 	amount3 = 1_000_000_000
 	print(f"Alice is sending {amount3} microAlgos to Bob...")
-	transact(
+	(aliceBalance, bobBalance) = transact(
 		client=client,
 		appID=appID,
 		sender=alice,
 		amount=amount3,
 	)
+	print(f"Alice's balance is now {aliceBalance} microAlgos and Bob's balance is now {bobBalance} microAlgos\n")
+
 
 	print(f"Bob is sending {amount2} microAlgos to Alice...")
-	transact(
+	(aliceBalance, bobBalance) = transact(
 		client=client,
 		appID=appID,
 		sender=bob,
 		amount=amount2,
 	)
+	print(f"Alice's balance is now {aliceBalance} microAlgos and Bob's balance is now {bobBalance} microAlgos\n")
+
+	print("Alice signs state data...")
 
 
 	
