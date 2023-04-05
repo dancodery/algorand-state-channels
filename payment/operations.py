@@ -186,8 +186,14 @@ def signState(
 
     app_args = [
         b"loadState",
-        base64.b64decode("78or4J-Q7ZXUCQ4Snc6rPO34-HxVhi3ih7QSO7dIoIewSt6aEZWoXTIn2rYSYaLf641bbRDP1QhJ72MguHWeAw"),
-        base64.b64decode("FS8tEk1_Qah59zXfvmv6ZZsIDM1a4mgNbT1XmrUHqWI=="),
+        # data: The data signed by the public key. Must evaluate to bytes.
+        # sig: The proposed 64-byte signature of the data. Must evaluate to bytes.
+        # key: The 32 byte public key that produced the signature. Must evaluate to bytes.
+        b"data",
+        # b"78or4J-Q7ZXUCQ4Snc6rPO34-HxVhi3ih7QSO7dIoIewSt6aEZWoXTIn2rYSYaLf641bbRDP1QhJ72MguHWeAw",
+        # b"FS8tEk1_Qah59zXfvmv6ZZsIDM1a4mgNbT1XmrUHqWI==",
+        b"Om6weQ85rIfJTzhWst0sXREOaBFgImGpqSPTuyOtyLc=", 
+        b"nHwAgzHAwbefshLVGVNtFgMrUsszk+lFLlbwy6zzbhjoshU4I0aoGLMBDwbL9iRaWqPybkSSgB5gLRRE0KlYDw=="
     ]
 
     signStateAppTxn = transaction.ApplicationCallTxn(
@@ -197,8 +203,25 @@ def signState(
         app_args=app_args,
         sp=suggestedParams,
     )
+    increaseBudgetAppTxn1 = transaction.ApplicationCallTxn(
+        sender=sender.getAddress(),
+        index=appID,
+        on_complete=transaction.OnComplete.NoOpOC,
+        app_args=[b"increaseBudget"],
+        sp=suggestedParams,
+    )
+    increaseBudgetAppTxn2 = transaction.ApplicationCallTxn(
+        sender=sender.getAddress(),
+        index=appID,
+        on_complete=transaction.OnComplete.NoOpOC,
+        app_args=[b"increaseBudget"],
+        sp=suggestedParams,
+    )
+    transaction.assign_group_id([signStateAppTxn, increaseBudgetAppTxn1, increaseBudgetAppTxn2])
     signedSignStateAppTxn = signStateAppTxn.sign(sender.getPrivateKey())
-    client.send_transaction(signedSignStateAppTxn)
+    signedIncreaseBudgetAppTxn1 = increaseBudgetAppTxn1.sign(sender.getPrivateKey())
+    signedIncreaseBudgetAppTxn2 = increaseBudgetAppTxn2.sign(sender.getPrivateKey())
+    client.send_transactions([signedSignStateAppTxn, signedIncreaseBudgetAppTxn1, signedIncreaseBudgetAppTxn2])
     waitForTransaction(client, signedSignStateAppTxn.get_txid())
 
     print("State updated")

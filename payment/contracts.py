@@ -134,6 +134,10 @@ def approval_program():
 		Approve(),
 	)
 
+	on_increaseBudget = Seq(
+		Approve(),
+	)
+
 	# loads the signed state of the smart contract
 	on_loadState = Seq(
 		Assert(
@@ -147,10 +151,10 @@ def approval_program():
 				# data: The data signed by the public key. Must evaluate to bytes.
 				# sig: The proposed 64-byte signature of the data. Must evaluate to bytes.
 				# key: The 32 byte public key that produced the signature. Must evaluate to bytes.
-			If (Ed25519Verify_Bare(
-						Bytes("data"), 
+			If (Ed25519Verify_Bare(	# cost: 1900
 						Txn.application_args[0],
 						Txn.application_args[1],
+						Txn.application_args[2],
 					)
 			).Then(
 					App.globalPut(alice_signed, Int(1))
@@ -170,6 +174,7 @@ def approval_program():
 		Cond(
 			[on_call_method == Bytes("fund"), on_funding],
 			[on_call_method == Bytes("transact"), on_transacting],
+			[on_call_method == Bytes("increaseBudget"), on_increaseBudget],
 			[on_call_method == Bytes("loadState"), on_loadState],
 		)
 	)
