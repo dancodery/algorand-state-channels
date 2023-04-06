@@ -1,5 +1,6 @@
 from typing import Tuple
 import base64
+from hashlib import sha256
 
 from algosdk.v2client.algod import AlgodClient
 from algosdk.future import transaction
@@ -172,30 +173,28 @@ def signState(
     """
     suggestedParams = client.suggested_params()
 
-    data = b"data"
-    signedBytes = util.sign_bytes(data, sender.getPrivateKey())
-    pub_key = sender.getPublicKey().encode()
+    data_hash = sha256(b"data").digest()
+    signed_bytes = util.sign_bytes(data_hash, sender.getPrivateKey())
+    pub_key = sender.getAddress()
 
-    base64_string = "FS8tEk1_Qah59zXfvmv6ZZsIDM1a4mgNbT1XmrUHqWI"
+    print(data_hash)
+    print(signed_bytes)
+    print(pub_key, "\n")
 
-    # Add padding characters to the end of the string
-    while len(base64_string) % 4 != 0:
-        base64_string += "="
-
-    print(base64_string)
+    if util.verify_bytes(data_hash, signed_bytes, pub_key):
+        print("Signature is valid")
+    else:
+        print("Signature is invalid")
 
     app_args = [
         b"loadState",
         # data: The data signed by the public key. Must evaluate to bytes.
         # sig: The proposed 64-byte signature of the data. Must evaluate to bytes.
         # key: The 32 byte public key that produced the signature. Must evaluate to bytes.
-        b"data",
-        # b"78or4J-Q7ZXUCQ4Snc6rPO34-HxVhi3ih7QSO7dIoIewSt6aEZWoXTIn2rYSYaLf641bbRDP1QhJ72MguHWeAw",
-        # b"FS8tEk1_Qah59zXfvmv6ZZsIDM1a4mgNbT1XmrUHqWI==",
-        b"Om6weQ85rIfJTzhWst0sXREOaBFgImGpqSPTuyOtyLc=", 
-        b"nHwAgzHAwbefshLVGVNtFgMrUsszk+lFLlbwy6zzbhjoshU4I0aoGLMBDwbL9iRaWqPybkSSgB5gLRRE0KlYDw=="
+        data_hash,
+        signed_bytes.encode(),
+        pub_key.encode(),
     ]
-
     signStateAppTxn = transaction.ApplicationCallTxn(
         sender=sender.getAddress(),
         index=appID,
