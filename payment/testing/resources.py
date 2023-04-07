@@ -1,7 +1,7 @@
 from typing import List
 
 from algosdk.v2client.algod import AlgodClient
-from algosdk.future import transaction
+from algosdk import transaction
 from algosdk import account
 
 from ..account import Account
