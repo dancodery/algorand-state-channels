@@ -1,6 +1,10 @@
+import base64
+from nacl.signing import SigningKey, VerifyKey
+from nacl.exceptions import BadSignatureError
 from typing import List, Dict, Any, Optional, Union
 from base64 import b64decode
 from algosdk.v2client.algod import AlgodClient
+from algosdk import encoding
 
 from pyteal import compileTeal, Mode, Expr
 
@@ -102,3 +106,41 @@ def getBalances(client: AlgodClient, account: str) -> Dict[int, int]:
         balaces[assetID] = amount
 
     return balaces
+
+
+def signBytes(to_sign, private_key):
+    """
+    Sign arbitrary bytes without prepending with "MX".
+
+    Args:
+        to_sign (bytes): bytes to sign
+        private_key (str): base64 encoded private key
+
+    Returns:
+        str: base64 signature
+    """
+    private_key = base64.b64decode(private_key)
+    signing_key = SigningKey(private_key[: 32])
+    signed = signing_key.sign(to_sign)
+    signature = base64.b64encode(signed.signature).decode()
+    return signature    
+
+
+def verifyBytes(message, signature, public_key):
+    """
+    Verify the signature of a message.
+
+    Args:
+        message (bytes): message that was signed
+        signature (str): base64 signature
+        public_key (str): base32 address
+
+    Returns:
+        bool: whether or not the signature is valid
+    """
+    verify_key = VerifyKey(encoding.decode_address(public_key))
+    try:
+        verify_key.verify(message, base64.b64decode(signature))
+        return True
+    except (BadSignatureError, ValueError, TypeError):
+        return False
