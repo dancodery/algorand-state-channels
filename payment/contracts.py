@@ -21,8 +21,12 @@ def approval_program():
 	# bob_pubkey = Bytes("bob_pubkey")            # public key of the counterparty
 	# TODO add dispute timeout
 
+	# for debugging purposes
 	alice_signed = Bytes("alice_signed")        # used to check if Alice has signed the transaction
 
+	signed_data = Bytes("signed_data")
+	signature = Bytes("signature")
+	public_key = Bytes("public_key")
 
 	# closes the channel and pays out the funds to the respective parties
 	@Subroutine(TealType.none)
@@ -147,17 +151,22 @@ def approval_program():
 			)   
 		),    
 
+		# App.globalPut(signed_data, Txn.application_args[1]),
+		# App.globalPut(signature, Txn.application_args[2]),  # 64 bytes
+		# App.globalPut(public_key, Txn.application_args[3]),  # 32 bytes
+
 		If (Txn.sender() == App.globalGet(alice_address)).Then(
 				# data: The data signed by the public key. Must evaluate to bytes.
 				# sig: The proposed 64-byte signature of the data. Must evaluate to bytes.
 				# key: The 32 byte public key that produced the signature. Must evaluate to bytes.
+
 			If (Ed25519Verify_Bare(	# cost: 1900
-						Txn.application_args[0],
-						Txn.application_args[1],
+						Txn.application_args[1], # [alice_balance, bob_balance]
 						Txn.application_args[2],
+						App.globalGet(alice_address), # has to be comitted on chain
 					)
 			).Then(
-					App.globalPut(alice_signed, Int(1))
+				App.globalPut(alice_signed, Int(1))
 			)
 		),
 
