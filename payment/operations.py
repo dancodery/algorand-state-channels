@@ -5,7 +5,7 @@ from hashlib import sha256
 from algosdk.v2client.algod import AlgodClient
 from algosdk import transaction
 from algosdk.logic import get_application_address
-from algosdk import encoding, util
+from algosdk import encoding
 
 from .account import Account
 from .contracts import approval_program, clear_state_program
@@ -13,6 +13,8 @@ from .util import (
     waitForTransaction,
     fullyCompileContract,
     getAppGlobalState,
+    signBytes,
+    verifyBytes,
 )
 
 APPROVAL_PROGRAM = b""
@@ -54,7 +56,7 @@ def createPaymentApp(
     """
     approval, clear = getContracts(client)
 
-    globalSchema = transaction.StateSchema(num_uints=4, num_byte_slices=2)
+    globalSchema = transaction.StateSchema(num_uints=4, num_byte_slices=5)
     localSchema = transaction.StateSchema(num_uints=0, num_byte_slices=0)
 
     app_args = [
@@ -162,38 +164,38 @@ def signState(
         client: AlgodClient,
         appID: int,
         sender: Account,
-) -> None:
+) -> Tuple[int, int]:
     """Signs the current state of the payment app.
     Args:
         client: An algod client.
         appID: The ID of the payment app.
         sender: The account that will sign the state.
     Returns:
-        None
+        A tuple of 2 integers. The first is the new balance of Alice, and the second is the new balance of Bob.
     """
     suggestedParams = client.suggested_params()
 
-    data_hash = sha256(b"data").digest()
-    signed_bytes = util.sign_bytes(data_hash, sender.getPrivateKey())
+    # data_hash = sha256(b"data").digest()
+    data = b"[2000000900, 100]"
+    signed_bytes = signBytes(data, sender.getPrivateKey())
     pub_key = sender.getAddress()
 
-    print(data_hash)
-    print(signed_bytes)
-    print(pub_key, "\n")
-
-    if util.verify_bytes(data_hash, signed_bytes, pub_key):
-        print("Signature is valid")
-    else:
-        print("Signature is invalid")
+    # print(data.hex())
+    # print(base64.b64decode(signed_bytes).hex())
+    # print(encoding.decode_address(pub_key).hex(), "\n")
+    # if verifyBytes(data, signed_bytes, pub_key):
+    #     print("Signature is valid")
+    # else:
+    #     print("Signature is invalid")
 
     app_args = [
         b"loadState",
         # data: The data signed by the public key. Must evaluate to bytes.
         # sig: The proposed 64-byte signature of the data. Must evaluate to bytes.
         # key: The 32 byte public key that produced the signature. Must evaluate to bytes.
-        data_hash,
-        signed_bytes.encode(),
-        pub_key.encode(),
+        data,
+        base64.b64decode(signed_bytes),
+        encoding.decode_address(pub_key),
     ]
     signStateAppTxn = transaction.ApplicationCallTxn(
         sender=sender.getAddress(),
@@ -206,14 +208,14 @@ def signState(
         sender=sender.getAddress(),
         index=appID,
         on_complete=transaction.OnComplete.NoOpOC,
-        app_args=[b"increaseBudget"],
+        app_args=[b"increaseBudget", b"0"],
         sp=suggestedParams,
     )
     increaseBudgetAppTxn2 = transaction.ApplicationCallTxn(
         sender=sender.getAddress(),
         index=appID,
         on_complete=transaction.OnComplete.NoOpOC,
-        app_args=[b"increaseBudget"],
+        app_args=[b"increaseBudget", b"1"],
         sp=suggestedParams,
     )
     transaction.assign_group_id([signStateAppTxn, increaseBudgetAppTxn1, increaseBudgetAppTxn2])
@@ -222,5 +224,12 @@ def signState(
     signedIncreaseBudgetAppTxn2 = increaseBudgetAppTxn2.sign(sender.getPrivateKey())
     client.send_transactions([signedSignStateAppTxn, signedIncreaseBudgetAppTxn1, signedIncreaseBudgetAppTxn2])
     waitForTransaction(client, signedSignStateAppTxn.get_txid())
-
-    print("State updated")
+    
+    # return Alice and Bob's balances
+    newGlobalState = getAppGlobalState(client, appID)
+    aliceBalance = newGlobalState[b"alice_balance"]
+    try:
+        bobBalance = newGlobalState[b"bob_balance"]
+    except KeyError:
+        bobBalance = 0
+    return (aliceBalance, bobBalance)
