@@ -104,8 +104,6 @@ if __name__ == "__main__":
 	signState(client=client, appID=appID, sender=alice)
 
 
-	update
-
 	
 
 
