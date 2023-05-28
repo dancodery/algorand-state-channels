@@ -160,7 +160,9 @@ def approval_program():
 				# sig: The proposed 64-byte signature of the data. Must evaluate to bytes.
 				# key: The 32 byte public key that produced the signature. Must evaluate to bytes.
 
-			If (Ed25519Verify_Bare(	# cost: 1900
+
+			# https://pyteal.readthedocs.io/en/stable/crypto.html
+			If (Ed25519Verify_Bare(	# cost: 1900, takes 3 arguments: data, sig, key
 						Txn.application_args[1], # [alice_balance, bob_balance]
 						Txn.application_args[2],
 						App.globalGet(alice_address), # has to be comitted on chain

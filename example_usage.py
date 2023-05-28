@@ -101,7 +101,7 @@ if __name__ == "__main__":
 
 
 	print("Alice signs state data...")
-	signState(client=client, appID=appID, sender=alice)
+	signState(client=client, appID=appID, alice=alice, bob=bob)
 
 
 	

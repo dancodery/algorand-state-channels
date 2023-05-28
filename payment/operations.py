@@ -76,7 +76,7 @@ def createPaymentApp(
     )
     signedTxn = txn.sign(sender.getPrivateKey())
 
-    client.send_transaction(signedTxn)
+    client.send_transaction(signedTxn) # type: ignore
 
     response = waitForTransaction(client, signedTxn.get_txid())
     assert response.applicationIndex is not None and response.applicationIndex > 0
@@ -151,25 +151,70 @@ def transact(
         sp=suggestedParams,
     )
     signedTransactAppTxn = transactAppTxn.sign(sender.getPrivateKey())
-    client.send_transaction(signedTransactAppTxn)
+    client.send_transaction(signedTransactAppTxn) # type: ignore
     waitForTransaction(client, signedTransactAppTxn.get_txid())
 
     # return Alice and Bob's balances
     newGlobalState = getAppGlobalState(client, appID)
     aliceBalance = newGlobalState[b"alice_balance"]
     bobBalance = newGlobalState[b"bob_balance"]
-    return (aliceBalance, bobBalance)
+    return (aliceBalance, bobBalance) # type: ignore
+
+def increaseBudgetSignAndSendTransaction(
+        client: AlgodClient,
+        appID: int,
+        sender: Account,
+        txn: transaction.Transaction,
+        amount: int,
+        ) -> None:
+    """ Increase the budget of txn by amount, signs and sends the transaction
+    Args:
+        client: An algod client.    
+        appID: The ID of the payment app.
+        sender: The account that will sign the transactions.
+        txn: The transaction that will be prepended to the group of transactions.
+        amount: The amount of Algo coins to increase the budget by.
+    Returns:
+        None
+    """
+    suggestedParams = client.suggested_params()
+    amountOfTransactions = amount // 700 # round down to nearest 700; increase budget by 700 per transaction
+    transactions = [txn]
+
+    # loop once for each transaction
+    for i in range(amountOfTransactions):
+        increaseBudgetAppTxn = transaction.ApplicationCallTxn(
+            sender=sender.getAddress(),
+            index=appID,
+            on_complete=transaction.OnComplete.NoOpOC,
+            app_args=[b"increaseBudget", str(i).encode()],
+            sp=suggestedParams,
+        )
+        transactions.append(increaseBudgetAppTxn)
+    
+    transaction.assign_group_id(transactions)
+
+    signedTxns = []
+    for txn in transactions:
+        signedTxns.append(txn.sign(sender.getPrivateKey()))
+
+    print("Array of signed transactions: ", signedTxns)
+    client.send_transactions(signedTxns)
+    waitForTransaction(client, signedTxns[0].get_txid())
+
 
 def signState(
         client: AlgodClient,
         appID: int,
-        sender: Account,
+        alice: Account,
+        bob: Account,
 ) -> Tuple[int, int]:
     """Signs the current state of the payment app.
     Args:
         client: An algod client.
         appID: The ID of the payment app.
-        sender: The account that will sign the state.
+        alice: The account of Alice.
+        bob: The account of Bob.
     Returns:
         A tuple of 2 integers. The first is the new balance of Alice, and the second is the new balance of Bob.
     """
@@ -177,8 +222,10 @@ def signState(
 
     # data_hash = sha256(b"data").digest()
     data = b"[2000000900, 100]"
-    signed_bytes = signBytes(data, sender.getPrivateKey())
-    pub_key = sender.getAddress()
+    alice_signed_bytes = signBytes(data, alice.getPrivateKey())
+    bob_signed_bytes = signBytes(data, bob.getPrivateKey())
+    alice_pub_key = alice.getAddress()
+    bob_pub_key = bob.getAddress()
 
     # print(data.hex())
     # print(base64.b64decode(signed_bytes).hex())
@@ -194,36 +241,17 @@ def signState(
         # sig: The proposed 64-byte signature of the data. Must evaluate to bytes.
         # key: The 32 byte public key that produced the signature. Must evaluate to bytes.
         data,
-        base64.b64decode(signed_bytes),
-        encoding.decode_address(pub_key),
+        base64.b64decode(alice_signed_bytes),
+        encoding.decode_address(alice_pub_key),
     ]
     signStateAppTxn = transaction.ApplicationCallTxn(
-        sender=sender.getAddress(),
+        sender=alice.getAddress(),
         index=appID,
         on_complete=transaction.OnComplete.NoOpOC,
         app_args=app_args,
         sp=suggestedParams,
-    )
-    increaseBudgetAppTxn1 = transaction.ApplicationCallTxn(
-        sender=sender.getAddress(),
-        index=appID,
-        on_complete=transaction.OnComplete.NoOpOC,
-        app_args=[b"increaseBudget", b"0"],
-        sp=suggestedParams,
-    )
-    increaseBudgetAppTxn2 = transaction.ApplicationCallTxn(
-        sender=sender.getAddress(),
-        index=appID,
-        on_complete=transaction.OnComplete.NoOpOC,
-        app_args=[b"increaseBudget", b"1"],
-        sp=suggestedParams,
-    )
-    transaction.assign_group_id([signStateAppTxn, increaseBudgetAppTxn1, increaseBudgetAppTxn2])
-    signedSignStateAppTxn = signStateAppTxn.sign(sender.getPrivateKey())
-    signedIncreaseBudgetAppTxn1 = increaseBudgetAppTxn1.sign(sender.getPrivateKey())
-    signedIncreaseBudgetAppTxn2 = increaseBudgetAppTxn2.sign(sender.getPrivateKey())
-    client.send_transactions([signedSignStateAppTxn, signedIncreaseBudgetAppTxn1, signedIncreaseBudgetAppTxn2])
-    waitForTransaction(client, signedSignStateAppTxn.get_txid())
+    )    
+    increaseBudgetSignAndSendTransaction(client, appID, alice, signStateAppTxn, 1900) # 1x Sha3_256 a 130 + 2x Ed25519Verify a 1900
     
     # return Alice and Bob's balances
     newGlobalState = getAppGlobalState(client, appID)
