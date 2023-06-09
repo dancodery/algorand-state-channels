@@ -1,3 +1,12 @@
+# Sandbox files
+.active_config
+.clean
+sandbox.log
+data
+
+# emacs backup
+*~
+
 # IDEs
 .idea/
 
