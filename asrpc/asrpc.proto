@@ -1,0 +1,17 @@
+sytax = "proto3"
+
+package asrpc;
+
+service ASRPC {
+    rpc GetInfo (GetInfoRequest) returns (GetInfoResponse) {
+        option (google.api.http) = {
+            get: "/v1/getinfo"
+        };
+    }
+}
+
+message GetInfoRequest {}
+
+message GetInfoResponse {
+    string address = 1;
+}
