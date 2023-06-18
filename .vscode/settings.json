@@ -1,0 +1,13 @@
+{
+    "protoc": {
+        "path": "/usr/local/bin/protoc",
+        "compile_on_save": true,
+        "options": [
+            "--proto_path=${workspaceRoot}/asrpc",
+            "--go_out=${workspaceRoot}/asrpc",
+            "--go_opt=paths=source_relative",
+            "--go-grpc_out=${workspaceRoot}/asrpc",
+            "--go-grpc_opt=paths=source_relative"
+        ]
+    }
+}
