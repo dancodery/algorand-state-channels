@@ -1,4 +1,5 @@
-
+import threading
+import subprocess
 from algosdk.logic import get_application_address
 
 from payment.operations import (
@@ -6,6 +7,7 @@ from payment.operations import (
 	setupPaymentApp, 
 	transact,
 	signState,
+	payment_node_process,
 )
 from payment.util import (
 	getBalances,
@@ -15,7 +17,7 @@ from payment.testing.resources import (
 	getTemporaryAccount)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":	
 	client = getAlgodClient()
 
 	print("Generating temporary accounts...")
@@ -37,6 +39,7 @@ if __name__ == "__main__":
 		sender=alice,
 		counterparty=bob.getAddress(),
 		penalty_reserve=100_000,
+		dispute_window=1000,
 	)
 	print(
 		"Done. The payment app ID is",
@@ -56,55 +59,58 @@ if __name__ == "__main__":
 	)
 	print("Done\n")
 
-	# amount1 = 300
-	# print(f"Alice is sending {amount1} microAlgos to Bob...")
-	# (aliceBalance, bobBalance) = transact(
-	# 	client=client,
-	# 	appID=appID,
-	# 	sender=alice,
-	# 	amount=amount1,
-	# )
-	# print(f"Alice's balance is now {aliceBalance} microAlgos and Bob's balance is now {bobBalance} microAlgos\n")
+	amount1 = 300
+	print(f"Alice is sending {amount1} microAlgos to Bob...")
+	(aliceBalance, bobBalance) = transact(
+		client=client,
+		appID=appID,
+		sender=alice,
+		amount=amount1,
+	)
+	print(f"Alice's balance is now {aliceBalance} microAlgos and Bob's balance is now {bobBalance} microAlgos\n")
 
-	# amount2 = 50
-	# print(f"Bob tries sending {amount2} microAlgos to Alice...")
-	# try:
-	# 	(aliceBalance, bobBalance) = transact(
-	# 		client=client,
-	# 		appID=appID,
-	# 		sender=bob,
-	# 		amount=amount2,
-	# 	)
-	# 	print(f"Alice's balance is still {aliceBalance} microAlgos and Bob's balance is still {bobBalance} microAlgos\n")
-	# except Exception as e:
-	# 	print("\n Bob's transaction failed:", e)
+	amount2 = 50
+	print(f"Bob tries sending {amount2} microAlgos to Alice...")
+	try:
+		(aliceBalance, bobBalance) = transact(
+			client=client,
+			appID=appID,
+			sender=bob,
+			amount=amount2,
+		)
+		print(f"Alice's balance is still {aliceBalance} microAlgos and Bob's balance is still {bobBalance} microAlgos\n")
+	except Exception as e:
+		print("\n Bob's transaction failed:", e)
 
-	# amount3 = 1_000_000_000
-	# print(f"Alice is sending {amount3} microAlgos to Bob...")
-	# (aliceBalance, bobBalance) = transact(
-	# 	client=client,
-	# 	appID=appID,
-	# 	sender=alice,
-	# 	amount=amount3,
-	# )
-	# print(f"Alice's balance is now {aliceBalance} microAlgos and Bob's balance is now {bobBalance} microAlgos\n")
+	amount3 = 1_000_000_000
+	print(f"Alice is sending {amount3} microAlgos to Bob...")
+	(aliceBalance, bobBalance) = transact(
+		client=client,
+		appID=appID,
+		sender=alice,
+		amount=amount3,
+	)
+	print(f"Alice's balance is now {aliceBalance} microAlgos and Bob's balance is now {bobBalance} microAlgos\n")
 
 
-	# print(f"Bob is sending {amount2} microAlgos to Alice...")
-	# (aliceBalance, bobBalance) = transact(
-	# 	client=client,
-	# 	appID=appID,
-	# 	sender=bob,
-	# 	amount=amount2,
-	# )
-	# print(f"Alice's balance is now {aliceBalance} microAlgos and Bob's balance is now {bobBalance} microAlgos\n")
+	print(f"Bob is sending {amount2} microAlgos to Alice...")
+	(aliceBalance, bobBalance) = transact(
+		client=client,
+		appID=appID,
+		sender=bob,
+		amount=amount2,
+	)
+	print(f"Alice's balance is now {aliceBalance} microAlgos and Bob's balance is now {bobBalance} microAlgos\n")
 
 
 	print("Alice signs state data...")
-	signState(client=client, appID=appID, alice=alice, bob=bob)
-
-
-	
+	signState(client=client, appID=appID, alice=alice, bob=bob, alice_balance=1_999_999_900, bob_balance=100)
 
 
 
+	alice_thread = threading.Thread(target=payment_node_process, kwargs={"participant_name": "Alice", "is_creator": True})
+	alice_thread.start()
+
+
+	bob_thread = threading.Thread(target=payment_node_process, kwargs={"participant_name": "Bob", "is_creator": False})
+	bob_thread.start()
