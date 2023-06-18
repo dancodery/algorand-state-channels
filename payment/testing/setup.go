@@ -18,7 +18,7 @@ const (
 	KMD_WALLET_PASSWORD = ""
 )
 
-func getAlgodClient() *algod.Client {
+func GetAlgodClient() *algod.Client {
 	algodClient, err := algod.MakeClient(ALGOD_ADDRESS, ALGOD_TOKEN)
 	if err != nil {
 		log.Fatalf("failed to make algod client: %v\n", err)
@@ -26,7 +26,7 @@ func getAlgodClient() *algod.Client {
 	return &algodClient
 }
 
-func getKmdClient() *algod.Client {
+func GetKmdClient() *algod.Client {
 	kmdClient, err := kmd.MakeClient(KMD_ADDRESS, KMD_TOKEN)
 	if err != nil {
 		log.Fatalf("Failed to create kmd client: %s", err)
