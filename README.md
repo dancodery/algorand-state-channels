@@ -27,7 +27,7 @@ docker exec -it asc-bob bash
 ## Commands Cheat Sheet
 
 ### Docker-Compose Action Commands:
-1. **<span style="color: yellow;">docker-compose up [container_name] [--remove-orphans] [-d] [--build]
+1. **<span style="color: yellow;">docker-compose up [--remove-orphans] [-d] [--build] [container_name]
 </span>** ----> Creates and starts all containers defined in docker-compose.yml, [--remove-orphans] removes ophaned containers, [-d] runs in detached mode, [--build] builds images before starting containers
 1. **<span style="color: yellow;">docker-compose down</span>** ----> Stops and removes all containers, images and networks defined in docker-compose.yml 
 1. **<span style="color: yellow;">docker-compose start</span>** ----> Starts any stopped container defined in docker-compose.yml
