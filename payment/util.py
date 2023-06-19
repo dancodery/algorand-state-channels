@@ -1,4 +1,5 @@
 import base64
+import hashlib
 from nacl.signing import SigningKey, VerifyKey
 from nacl.exceptions import BadSignatureError
 from typing import List, Dict, Any, Optional, Union
@@ -107,6 +108,17 @@ def getBalances(client: AlgodClient, account: str) -> Dict[int, int]:
 
     return balaces
 
+def sha3_256(data):
+    """
+    Compute SHA3-256 hash of the input data.
+
+    Args:
+        data (bytes): data to hash
+
+    Returns:
+        bytes: hash
+    """
+    return hashlib.sha3_256(data).digest()
 
 def signBytes(to_sign, private_key):
     """
