@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strconv"
@@ -15,7 +16,7 @@ const (
 	DEFAULT_GRPC_PORT = 50051
 )
 
-func getClient(ctx *cli.Context, host string) asrpc.ASRPCClient {
+func getClient(ctx *cli.Context) asrpc.ASRPCClient {
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 
 	conn, err := grpc.Dial("localhost:"+strconv.Itoa(DEFAULT_GRPC_PORT), opts...)
@@ -25,6 +26,16 @@ func getClient(ctx *cli.Context, host string) asrpc.ASRPCClient {
 	}
 
 	return asrpc.NewASRPCClient(conn)
+}
+
+func printJson(v interface{}) {
+	jsonData, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error: %s\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println(string(jsonData))
 }
 
 func main() {
