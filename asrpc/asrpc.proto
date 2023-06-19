@@ -1,17 +1,39 @@
-sytax = "proto3"
+syntax = "proto3";
 
-package asrpc;
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/dancodery/algorand-state-channels/asrpc";
 
 service ASRPC {
-    rpc GetInfo (GetInfoRequest) returns (GetInfoResponse) {
-        option (google.api.http) = {
-            get: "/v1/getinfo"
-        };
-    }
+    rpc GetInfo(GetInfoRequest) returns (GetInfoResponse) {}
+
+    rpc OpenChannel(OpenChannelRequest) returns (OpenChannelResponse) {}
+}
+
+message StateChannelNodeAddress {
+    string host = 1;
+    string algo_address = 2;
+}
+
+message RuntimeRecording {
+    google.protobuf.Timestamp timestamp_start = 1;
+    google.protobuf.Timestamp timestamp_end = 2;
 }
 
 message GetInfoRequest {}
 
 message GetInfoResponse {
-    string address = 1;
+    string algo_address = 1;
+    RuntimeRecording runtime_recording = 2;
+}
+
+message OpenChannelRequest {
+    StateChannelNodeAddress partner_node = 1;
+    int64 funding_amount = 2;
+    int64 penalty_reserve = 3;
+    int64 dispute_window = 4;
+}
+
+message OpenChannelResponse {
+    RuntimeRecording runtime_recording = 1;
 }
