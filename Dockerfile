@@ -29,6 +29,7 @@ RUN \
     --mount=type=cache,target=/var/cache/apt \
     apt-get update && apt-get install -y \
     netcat-openbsd \
+    jq \
     && rm -rf /var/lib/apt/lists/*
 
 COPY    --from=builder /bin/ascli /bin/
