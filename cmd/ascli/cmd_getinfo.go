@@ -32,13 +32,8 @@ func getInfo(ctx *cli.Context) error {
 	ctxb := context.Background()
 	client := getClient(ctx, ctx.String("node"))
 
-	addr := &asrpc.StateChannelAddress{
-		Host: ctx.String("node"),
-	}
+	getInfoRequest := &asrpc.GetInfoRequest{}
 
-	getInfoRequest := &asrpc.GetInfoRequest{
-		StateChannelAddress: addr,
-	}
 	getInfoResponse, err := client.GetInfo(ctxb, getInfoRequest)
 
 	if err != nil {

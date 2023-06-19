@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/dancodery/algorand-state-channels/asrpc"
 	"github.com/urfave/cli"
@@ -12,13 +13,12 @@ import (
 
 const (
 	DEFAULT_GRPC_PORT = 50051
-	DEFAULT_ENDPOINT  = "localhost:" + string(DEFAULT_GRPC_PORT)
 )
 
 func getClient(ctx *cli.Context, host string) asrpc.ASRPCClient {
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 
-	conn, err := grpc.Dial(DEFAULT_ENDPOINT, opts...)
+	conn, err := grpc.Dial("localhost:"+strconv.Itoa(DEFAULT_GRPC_PORT), opts...)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		os.Exit(1)
