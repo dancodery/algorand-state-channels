@@ -10,10 +10,15 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
+const (
+	DEFAULT_GRPC_PORT = 50051
+	DEFAULT_ENDPOINT  = "localhost:" + string(DEFAULT_GRPC_PORT)
+)
+
 func getClient(ctx *cli.Context, host string) asrpc.ASRPCClient {
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 
-	conn, err := grpc.Dial(host+":28547", opts...)
+	conn, err := grpc.Dial(DEFAULT_ENDPOINT, opts...)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error: %s\n", err)
 		os.Exit(1)
@@ -25,14 +30,7 @@ func getClient(ctx *cli.Context, host string) asrpc.ASRPCClient {
 func main() {
 	app := cli.NewApp()
 	app.Name = "ascli"
-	app.Usage = "control panel for asd"
-	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:  "rpcserver",
-			Value: "localhost:28547",
-			Usage: "address of asd rpc server",
-		},
-	}
+	app.Usage = "control plane for asd"
 	app.Commands = []cli.Command{
 		getInfoCommand,
 		openChannelCommand,
