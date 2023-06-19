@@ -20,13 +20,13 @@ func loadMain(out io.Writer) error {
 		return err
 	}
 
-	// start asd server
-	server, err := newServer(loadedConfig.PeerPort)
+	// initialize server environment
+	server, err := initializeServer(loadedConfig.PeerPort, loadedConfig.GRPCPort)
 	if err != nil {
 		log.Fatalf("failed to create server: %v\n", err)
 		return err
 	}
-	if err := server.start(); err != nil {
+	if err := server.startListening(); err != nil {
 		log.Fatalf("failed to start server: %v\n", err)
 	}
 
@@ -34,9 +34,9 @@ func loadMain(out io.Writer) error {
 	var opts []grpc.ServerOption
 	grpcServer := grpc.NewServer(opts...)
 	asrpc.RegisterASRPCServer(grpcServer, server.rpcServer)
-	fmt.Printf("Started grpc server on port %d\n", loadedConfig.PeerPort)
+	fmt.Printf("Started grpc server on port %d\n", loadedConfig.GRPCPort)
 
-	if err := grpcServer.Serve(server.listener); err != nil {
+	if err := grpcServer.Serve(server.grpc_listener); err != nil {
 		log.Fatalf("failed to serve: %v\n", err)
 		return err
 	}
