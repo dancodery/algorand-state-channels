@@ -42,3 +42,6 @@ docker exec -it asc-bob bash
 
 ## Acknowledgements
 This implementation has taken the following resources for assistance: https://github.com/lightningnetwork/lnd by Olaoluwa Osuntokun at Lightning Labs and https://github.com/lnbook/lnbook by Andreas M. Antonopoulos, Olaoluwa Osuntokun and Rene Pickhardt.
+
+
+>Intended use for educational purposes only.
