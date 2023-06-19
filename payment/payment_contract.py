@@ -283,12 +283,12 @@ def clear_state_program():
 # Compiles PyTEAL code to TEAL, .teal files are placed into ./build
 if __name__ == "__main__":
     os.makedirs("build", exist_ok=True)
-    approval_file = f"build/{FILENAME}_approval.teal"
+    approval_file = f"build_contracts/{FILENAME}_approval.teal"
     with open(approval_file, "w") as f:
         compiled = compileTeal(approval_program(), mode=Mode.Application, version=7)
         f.write(compiled)
 
-    clear_state_file = f"build/{FILENAME}_clear_state.teal"
+    clear_state_file = f"build_contracts/{FILENAME}_clear_state.teal"
     with open(clear_state_file, "w") as f:
         compiled = compileTeal(clear_state_program(), mode=Mode.Application, version=7)
         f.write(compiled)
