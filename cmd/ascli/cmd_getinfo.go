@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/dancodery/algorand-state-channels/asrpc"
 	"github.com/urfave/cli"
@@ -14,23 +13,13 @@ var getInfoCommand = cli.Command{
 		Get information about the node.
 		TODO: add more description here
 	`,
-	Usage: "getinfo --node=<node>",
-	Flags: []cli.Flag{
-		cli.StringFlag{
-			Name:  "node",
-			Usage: "node to connect to",
-		},
-	},
+	Usage:  "getinfo",
 	Action: getInfo,
 }
 
 func getInfo(ctx *cli.Context) error {
-	if ctx.String("node") == "" {
-		ctx.Set("node", "localhost")
-	}
-
 	ctxb := context.Background()
-	client := getClient(ctx, ctx.String("node"))
+	client := getClient(ctx)
 
 	getInfoRequest := &asrpc.GetInfoRequest{}
 
@@ -40,7 +29,7 @@ func getInfo(ctx *cli.Context) error {
 		return err
 	}
 
-	fmt.Println(getInfoResponse)
+	printJson(getInfoResponse)
 
 	return nil
 }
