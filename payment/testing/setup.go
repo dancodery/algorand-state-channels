@@ -1,11 +1,13 @@
 package testing
 
 import (
+	"context"
 	"log"
 
 	"github.com/algorand/go-algorand-sdk/v2/client/kmd"
 	"github.com/algorand/go-algorand-sdk/v2/client/v2/algod"
 	"github.com/algorand/go-algorand-sdk/v2/crypto"
+	"github.com/algorand/go-algorand-sdk/v2/transaction"
 )
 
 const (
@@ -114,4 +116,41 @@ func GetSandboxAccounts() ([]crypto.Account, error) {
 	}
 
 	return accounts, nil
+}
+
+func FundAccount(algodClient *algod.Client, recipient string, amount uint64) {
+	accounts, err := GetSandboxAccounts()
+	if err != nil {
+		log.Fatalf("error getting sandbox accounts: %s\n", err)
+	}
+	fundingAccount := accounts[0]
+
+	sp, err := algodClient.SuggestedParams().Do(context.Background())
+	if err != nil {
+		log.Fatalf("error getting suggested params: %s\n", err)
+	}
+	paymenttxn, err := transaction.MakePaymentTxn(fundingAccount.Address.String(), recipient, amount, nil, "", sp)
+	if err != nil {
+		log.Fatalf("error creating payment txn: %s\n", err)
+	}
+
+	// sign the transaction
+	_, signed_payment_transaction, err := crypto.SignTransaction(fundingAccount.PrivateKey, paymenttxn)
+	if err != nil {
+		log.Fatalf("error signing transaction: %s\n", err)
+		return
+	}
+
+	// submit the transaction
+	_, err = algodClient.SendRawTransaction(signed_payment_transaction).Do(context.Background())
+	if err != nil {
+		log.Fatalf("error sending transaction: %s\n", err)
+	}
+
+	// // wait for confirmation
+	// confirmedTxn, err := transaction.WaitForConfirmation(algodClient, pendingTransactionID, 4, context.Background())
+	// if err != nil {
+	// 	log.Fatalf("error confirming transaction: %s\n", err)
+	// 	return
+	// }
 }
