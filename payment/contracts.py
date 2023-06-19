@@ -7,26 +7,23 @@ FILENAME = "payment"
 
 
 def approval_program():
-	# Keys for the global key-value state of the smart contract
-	# Convenient to define keys here s.t. they can be reused when needed
-	alice_address = Bytes("alice_address")      # creator and funder of the smart contract
-	bob_address = Bytes("bob_address")          # counterparty
+	app_id = Bytes("app_id")						# uint: stores the app_id of the smart contract
+
+	alice_address = Bytes("alice_address")			# byte_slice: creator and funder of the smart contract												
+	bob_address = Bytes("bob_address")				# byte_slice: counterparty
 	
-	alice_balance = Bytes("alice_balance")      # part of state; value variable during execution
-	bob_balance = Bytes("bob_balance")          # part of state; value variable during execution
+	timeout = Bytes("timeout")              		# uint: part of general state; value fixed during execution
 
-	penalty_reserve = Bytes("penalty_reserve")  # used to penalize expired transaction commitments
+	latest_state_timestamp = Bytes("latest_timestamp")			# uint: part of general state; when the latest transaction was signed by alice and bob
+	total_deposit = Bytes("total_deposit")						# uint: part of application specific state; value set by funding transaction
+	latest_alice_balance = Bytes("latest_alice_balance")      	# uint: part of application specific state; value variable during execution
+	latest_bob_balance = Bytes("latest_bob_balance")          	# uint: part of application specific state; value variable during execution
 
-	# alice_pubkey = Bytes("alice_pubkey")        # public key of the creator
-	# bob_pubkey = Bytes("bob_pubkey")            # public key of the counterparty
-	# TODO add dispute timeout
-
+	penalty_reserve = Bytes("penalty_reserve")					# uint: used to penalize expired transaction commitments
+	dispute_window = Bytes("dispute_window")					# uint: window in which a dispute can be raised
+	
 	# for debugging purposes
-	alice_signed = Bytes("alice_signed")        # used to check if Alice has signed the transaction
-
-	signed_data = Bytes("signed_data")
-	signature = Bytes("signature")
-	public_key = Bytes("public_key")
+	# signed = Bytes("signed")        	# uint: used to check if Alice and Bob have signed the transaction
 
 	# closes the channel and pays out the funds to the respective parties
 	@Subroutine(TealType.none)
@@ -37,7 +34,7 @@ def approval_program():
 			InnerTxnBuilder.SetFields(
 				{
 					TxnField.type_enum: TxnType.Payment,
-					TxnField.amount: App.globalGet(alice_balance) - Global.min_txn_fee(),
+					TxnField.amount: App.globalGet(latest_alice_balance) - Global.min_txn_fee(),
 					TxnField.receiver: App.globalGet(alice_address),
 				}
 			),
@@ -48,7 +45,7 @@ def approval_program():
 			InnerTxnBuilder.SetFields(
 				{
 					TxnField.type_enum: TxnType.Payment,
-					TxnField.amount: App.globalGet(bob_balance) - Global.min_txn_fee(),
+					TxnField.amount: App.globalGet(latest_bob_balance) - Global.min_txn_fee(),
 					TxnField.receiver: App.globalGet(bob_address),
 				}
 			),
@@ -82,11 +79,14 @@ def approval_program():
 	# Initialization
 	on_create = Seq(
 		# The arguments contain bob address, and penalty reserve
-		Assert(Txn.application_args.length() == Int(2)),
+		Assert(Txn.application_args.length() == Int(3)),
 		# Set alice to sender of initial tx
+		# App.globalPut(app_id, Global.current_application_id()),
+		App.globalPut(app_id, Global.current_application_id()),
 		App.globalPut(alice_address, Txn.sender()),
 		App.globalPut(bob_address, Txn.application_args[0]),
 		App.globalPut(penalty_reserve, Btoi(Txn.application_args[1])),
+		App.globalPut(dispute_window, Btoi(Txn.application_args[2])),
 		Approve()
 	)
 
@@ -119,7 +119,8 @@ def approval_program():
 			)
 		),
 
-		App.globalPut(alice_balance, Gtxn[funding_txn_index].amount()),
+		App.globalPut(latest_alice_balance, Gtxn[funding_txn_index].amount()),
+		App.globalPut(total_deposit, Gtxn[funding_txn_index].amount()),
 		Approve(),
 	)
 
@@ -129,11 +130,11 @@ def approval_program():
 		Assert(Or(Txn.sender() == App.globalGet(alice_address),
 				  Txn.sender() == App.globalGet(bob_address))),
 		If(Txn.sender() == App.globalGet(alice_address)).Then(
-			rebalance(alice_balance, bob_balance, amount)
+			rebalance(latest_alice_balance, latest_bob_balance, amount)
 		),
 
 		If(Txn.sender() == App.globalGet(bob_address)).Then(
-			rebalance(bob_balance, alice_balance, amount)
+			rebalance(latest_bob_balance, latest_alice_balance, amount)
 		),
 		Approve(),
 	)
@@ -142,39 +143,106 @@ def approval_program():
 		Approve(),
 	)
 
-	# loads the signed state of the smart contract
+	algorand_port = Txn.application_args[1]
+	alice_balance = Txn.application_args[2]
+	bob_balance = Txn.application_args[3]
+	timestamp = Txn.application_args[4]
+	alice_signature = Txn.application_args[5] # 64 bytes
+	bob_signature = Txn.application_args[6] # 64 bytes
+	hash = Sha3_256( # cost: 130, takes 1 argument: data
+			Concat(
+				algorand_port,
+				Bytes(","),
+				Itob(App.globalGet(app_id)),
+				Bytes(","),
+				alice_balance, 
+				Bytes(","),
+				bob_balance,
+				Bytes(","),
+				timestamp
+			)) # in bytes "alice_balance, bob_balance"
 	on_loadState = Seq(
-		Assert(
-			Or(
-				Txn.sender() == App.globalGet(alice_address),
-				Txn.sender() == App.globalGet(bob_address)
-			)   
-		),    
-
-		# App.globalPut(signed_data, Txn.application_args[1]),
-		# App.globalPut(signature, Txn.application_args[2]),  # 64 bytes
-		# App.globalPut(public_key, Txn.application_args[3]),  # 32 bytes
-
-		If (Txn.sender() == App.globalGet(alice_address)).Then(
-				# data: The data signed by the public key. Must evaluate to bytes.
-				# sig: The proposed 64-byte signature of the data. Must evaluate to bytes.
-				# key: The 32 byte public key that produced the signature. Must evaluate to bytes.
-
-
-			# https://pyteal.readthedocs.io/en/stable/crypto.html
-			If (Ed25519Verify_Bare(	# cost: 1900, takes 3 arguments: data, sig, key
-						Txn.application_args[1], # [alice_balance, bob_balance]
-						Txn.application_args[2],
-						App.globalGet(alice_address), # has to be comitted on chain
-					)
-			).Then(
-				App.globalPut(alice_signed, Int(1))
+		# load the signed state
+		# can be called by anyone
+		If (And(
+				# https://pyteal.readthedocs.io/en/stable/crypto.html
+				Ed25519Verify_Bare(	# cost: 1900, takes 3 arguments: data, sig 64 bytes, key 32 bytes
+					hash,
+					alice_signature, # signature
+					App.globalGet(alice_address), # has to be comitted on chain
+				),
+				Ed25519Verify_Bare(
+					hash,
+					bob_signature,
+					App.globalGet(bob_address),
+				),
+				Btoi(alice_balance) + Btoi(bob_balance) == App.globalGet(total_deposit),
 			)
+		).Then(
+			App.globalPut(timeout, Global.round() + App.globalGet(dispute_window)),			# set timeout
+			App.globalPut(latest_state_timestamp, Btoi(timestamp)), 					# store state timestamp
+			App.globalPut(latest_alice_balance, Btoi(alice_balance)),					# store latest balances of alice
+			App.globalPut(latest_bob_balance, Btoi(bob_balance)),						# store latest balances of bob
 		),
-
-		# verify signature
-		# EcdsaVerify(bytes("data"), Txn.application_args[0]),
 		Approve(),  
+	)
+
+
+	on_raiseDispute = Seq(
+
+		# If (And(
+		# 		# https://pyteal.readthedocs.io/en/stable/crypto.html
+		# 		Ed25519Verify_Bare(	# cost: 1900, takes 3 arguments: data, sig 64 bytes, key 32 bytes
+		# 			hash,
+		# 			alice_signature, # signature
+		# 			App.globalGet(alice_address), # has to be comitted on chain
+		# 		),
+		# 		Ed25519Verify_Bare(
+		# 			hash,
+		# 			bob_signature,
+		# 			App.globalGet(bob_address),
+		# 		),
+		# 		Btoi(alice_balance) + Btoi(bob_balance) == App.globalGet(total_deposit),
+		# 		latest_state_timestamp >= Btoi(timestamp),
+		# 	)
+		# ).Then(
+		# 	# App.globalPut(latest_state_timestamp, Btoi(timestamp)), 						# store state timestamp
+		# 	# App.globalPut(timeout, Global.round() + App.globalGet(dispute_window)),			# set timeout
+		# 	# App.globalPut(latest_alice_balance, Btoi(alice_balance)),				# store latest balances of alice
+		# 	App.globalPut(latest_bob_balance, Btoi(bob_balance)),					# store latest balances of bob
+
+
+		# ),
+		Approve(),  
+	)
+
+	on_closeChannel = Seq(
+		Assert(Global.round() > App.globalGet(timeout)),
+
+		If (Global.round() > App.globalGet(timeout)).Then(
+			# timeout has passed
+			# send funds to alice
+			InnerTxnBuilder.Begin(),
+			InnerTxnBuilder.SetFields(
+				{
+					TxnField.type_enum: TxnType.Payment,
+					TxnField.amount: App.globalGet(latest_alice_balance), # - Global.min_txn_fee(),
+					TxnField.receiver: App.globalGet(alice_address),
+				}
+			),
+			InnerTxnBuilder.Submit(),
+
+			InnerTxnBuilder.Begin(),
+			InnerTxnBuilder.SetFields(
+				{
+					TxnField.type_enum: TxnType.Payment,
+					TxnField.amount: App.globalGet(latest_bob_balance), # - Global.min_txn_fee(),
+					TxnField.receiver: App.globalGet(bob_address),
+				}
+			),
+			InnerTxnBuilder.Submit(),
+		),
+		Approve(),
 	)
 
 	# NoOp call
