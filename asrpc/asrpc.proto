@@ -29,11 +29,12 @@ message GetInfoResponse {
 
 message OpenChannelRequest {
     StateChannelNodeAddress partner_node = 1;
-    int64 funding_amount = 2;
-    int64 penalty_reserve = 3;
-    int64 dispute_window = 4;
+    uint64 funding_amount = 2;
+    uint64 penalty_reserve = 3;
+    uint64 dispute_window = 4;
 }
 
 message OpenChannelResponse {
-    RuntimeRecording runtime_recording = 1;
+    uint64 app_id = 1;
+    RuntimeRecording runtime_recording = 2;
 }
