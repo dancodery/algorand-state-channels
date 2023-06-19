@@ -1,5 +1,7 @@
 from typing import Tuple
 import base64
+import socket
+import math
 from hashlib import sha256
 
 from algosdk.v2client.algod import AlgodClient
@@ -13,12 +15,17 @@ from .util import (
     waitForTransaction,
     fullyCompileContract,
     getAppGlobalState,
+    sha3_256,
     signBytes,
     verifyBytes,
 )
 
 APPROVAL_PROGRAM = b""
 CLEAR_STATE_PROGRAM = b""
+
+# TCP settings
+HOST = "localhost"
+PORT = 28547
 
 
 def getContracts(client: AlgodClient) -> Tuple[bytes, bytes]:
@@ -44,6 +51,7 @@ def createPaymentApp(
     sender: Account,
     counterparty: str,
     penalty_reserve=100_000,
+    dispute_window=1000, # in rounds
 ) -> int:
     """Create payment smart contract
     Args:
@@ -56,12 +64,13 @@ def createPaymentApp(
     """
     approval, clear = getContracts(client)
 
-    globalSchema = transaction.StateSchema(num_uints=4, num_byte_slices=5)
+    globalSchema = transaction.StateSchema(num_uints=8, num_byte_slices=2)
     localSchema = transaction.StateSchema(num_uints=0, num_byte_slices=0)
 
     app_args = [
         encoding.decode_address(counterparty),
         penalty_reserve.to_bytes(8, "big"),
+        dispute_window.to_bytes(8, "big"),
     ]
 
     txn = transaction.ApplicationCreateTxn(
@@ -76,8 +85,7 @@ def createPaymentApp(
     )
     signedTxn = txn.sign(sender.getPrivateKey())
 
-    client.send_transaction(signedTxn) # type: ignore
-
+    client.send_transaction(signedTxn)
     response = waitForTransaction(client, signedTxn.get_txid())
     assert response.applicationIndex is not None and response.applicationIndex > 0
     return response.applicationIndex
@@ -156,8 +164,8 @@ def transact(
 
     # return Alice and Bob's balances
     newGlobalState = getAppGlobalState(client, appID)
-    aliceBalance = newGlobalState[b"alice_balance"]
-    bobBalance = newGlobalState[b"bob_balance"]
+    aliceBalance = newGlobalState[b"latest_alice_balance"]
+    bobBalance = newGlobalState[b"latest_bob_balance"]
     return (aliceBalance, bobBalance) # type: ignore
 
 def increaseBudgetSignAndSendTransaction(
@@ -178,7 +186,7 @@ def increaseBudgetSignAndSendTransaction(
         None
     """
     suggestedParams = client.suggested_params()
-    amountOfTransactions = amount // 700 # round down to nearest 700; increase budget by 700 per transaction
+    amountOfTransactions = math.ceil(amount / 700) # round up to nearest 700; increase budget by 700 per transaction
     transactions = [txn]
 
     # loop once for each transaction
@@ -198,7 +206,6 @@ def increaseBudgetSignAndSendTransaction(
     for txn in transactions:
         signedTxns.append(txn.sign(sender.getPrivateKey()))
 
-    print("Array of signed transactions: ", signedTxns)
     client.send_transactions(signedTxns)
     waitForTransaction(client, signedTxns[0].get_txid())
 
@@ -208,6 +215,9 @@ def signState(
         appID: int,
         alice: Account,
         bob: Account,
+        alice_balance: int,
+        bob_balance: int,
+        algorand_port = 4161,
 ) -> Tuple[int, int]:
     """Signs the current state of the payment app.
     Args:
@@ -219,13 +229,20 @@ def signState(
         A tuple of 2 integers. The first is the new balance of Alice, and the second is the new balance of Bob.
     """
     suggestedParams = client.suggested_params()
+    timestamp = 1685318789
 
-    # data_hash = sha256(b"data").digest()
-    data = b"[2000000900, 100]"
-    alice_signed_bytes = signBytes(data, alice.getPrivateKey())
-    bob_signed_bytes = signBytes(data, bob.getPrivateKey())
-    alice_pub_key = alice.getAddress()
-    bob_pub_key = bob.getAddress()
+    data_raw = (algorand_port).to_bytes(8, "big") + b"," \
+                + (appID).to_bytes(8, "big") + b"," \
+                + (alice_balance).to_bytes(8, "big") + b"," \
+                + (bob_balance).to_bytes(8, "big") + b"," \
+                + (timestamp).to_bytes(8, "big")
+    data_hashed = sha3_256(data_raw)
+
+    alice_signed_bytes = signBytes(data_hashed, alice.getPrivateKey())
+    bob_signed_bytes = signBytes(data_hashed, bob.getPrivateKey())
+
+    # alice_pub_key = alice.getAddress()
+    # bob_pub_key = bob.getAddress()
 
     # print(data.hex())
     # print(base64.b64decode(signed_bytes).hex())
@@ -237,12 +254,14 @@ def signState(
 
     app_args = [
         b"loadState",
-        # data: The data signed by the public key. Must evaluate to bytes.
-        # sig: The proposed 64-byte signature of the data. Must evaluate to bytes.
-        # key: The 32 byte public key that produced the signature. Must evaluate to bytes.
-        data,
+        # BEGIN signed values
+        (algorand_port).to_bytes(8, "big"), # algorand_port
+        (alice_balance).to_bytes(8, "big"), # alice_balance
+        (bob_balance).to_bytes(8, "big"), # bob_balance
+        (timestamp).to_bytes(8, "big"), # timestamp
+        # END signed values
         base64.b64decode(alice_signed_bytes),
-        encoding.decode_address(alice_pub_key),
+        base64.b64decode(bob_signed_bytes),
     ]
     signStateAppTxn = transaction.ApplicationCallTxn(
         sender=alice.getAddress(),
@@ -251,13 +270,39 @@ def signState(
         app_args=app_args,
         sp=suggestedParams,
     )    
-    increaseBudgetSignAndSendTransaction(client, appID, alice, signStateAppTxn, 1900) # 1x Sha3_256 a 130 + 2x Ed25519Verify a 1900
+    increaseBudgetSignAndSendTransaction(client, appID, alice, signStateAppTxn, 3930) # 1x Sha3_256 a 130 + 2x Ed25519Verify a 1900
     
     # return Alice and Bob's balances
     newGlobalState = getAppGlobalState(client, appID)
-    aliceBalance = newGlobalState[b"alice_balance"]
+    aliceBalance = newGlobalState[b"latest_alice_balance"]
     try:
-        bobBalance = newGlobalState[b"bob_balance"]
+        bobBalance = newGlobalState[b"latest_bob_balance"]
     except KeyError:
         bobBalance = 0
     return (aliceBalance, bobBalance)
+
+
+def alice_process():
+    # start the tcp server
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind((HOST, PORT))
+    server_socket.listen(3) # maximum number of queued connections
+
+    print("Alice payment node is running and waiting for Bob's payment requests...")
+
+
+def payment_node_process(
+        participant_name: str,
+        is_creator: bool,
+    ):
+    # start the tcp server
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind((HOST, PORT))
+    server_socket.listen(3) # maximum number of queued connections
+
+    print(f"{participant_name} {'(payment channel creator)' if is_creator else ''} node is running and waiting for requests...")
+
+    while True:
+        # accept incoming connection
+        client_socket, client_address = server_socket.accept()
+        print(f"{participant_name}: Connection from {client_address} has been established!")
