@@ -10,7 +10,8 @@ ENV GODEBUG netdns=cgo
 COPY    cmd/ascli/ $GOPATH/src/github.com/dancodery/algorand-state-channels/cmd/ascli/
 COPY    cmd/asd/ $GOPATH/src/github.com/dancodery/algorand-state-channels/cmd/asd/
 COPY    asrpc/ $GOPATH/src/github.com/dancodery/algorand-state-channels/asrpc/
-COPY    payment/testing/setup.go $GOPATH/src/github.com/dancodery/algorand-state-channels/payment/testing/
+COPY    payment/ $GOPATH/src/github.com/dancodery/algorand-state-channels/payment/
+COPY    payment/testing/ $GOPATH/src/github.com/dancodery/algorand-state-channels/payment/testing/
 COPY    go.mod go.sum asd.go server.go rpcserver.go config.go $GOPATH/src/github.com/dancodery/algorand-state-channels/
 
 WORKDIR  $GOPATH/src/github.com/dancodery/algorand-state-channels
