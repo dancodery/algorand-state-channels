@@ -12,7 +12,8 @@ COPY    cmd/asd/ $GOPATH/src/github.com/dancodery/algorand-state-channels/cmd/as
 COPY    asrpc/ $GOPATH/src/github.com/dancodery/algorand-state-channels/asrpc/
 COPY    payment/ $GOPATH/src/github.com/dancodery/algorand-state-channels/payment/
 COPY    payment/testing/ $GOPATH/src/github.com/dancodery/algorand-state-channels/payment/testing/
-COPY    go.mod go.sum asd.go server.go rpcserver.go config.go $GOPATH/src/github.com/dancodery/algorand-state-channels/
+COPY    payment/build_contracts/ /build_contracts/
+COPY    go.mod go.sum asd.go server.go client.go rpcserver.go config.go $GOPATH/src/github.com/dancodery/algorand-state-channels/
 
 WORKDIR  $GOPATH/src/github.com/dancodery/algorand-state-channels
 
@@ -33,6 +34,9 @@ RUN \
     jq \
     && rm -rf /var/lib/apt/lists/*
 
+RUN mkdir -p /build_contracts
+
+COPY    --from=builder /build_contracts/ /smart_contracts/
 COPY    --from=builder /bin/ascli /bin/
 COPY    --from=builder /bin/asd /bin/
 
