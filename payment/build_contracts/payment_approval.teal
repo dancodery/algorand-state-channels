@@ -1,0 +1,288 @@
+#pragma version 7
+txn ApplicationID
+int 0
+==
+bnz main_l24
+txn OnCompletion
+int UpdateApplication
+==
+bnz main_l23
+txn OnCompletion
+int CloseOut
+==
+bnz main_l22
+txn OnCompletion
+int NoOp
+==
+bnz main_l7
+txn OnCompletion
+int DeleteApplication
+==
+bnz main_l6
+err
+main_l6:
+int 0
+return
+main_l7:
+txna ApplicationArgs 0
+byte "fund"
+==
+bnz main_l21
+txna ApplicationArgs 0
+byte "transact"
+==
+bnz main_l16
+txna ApplicationArgs 0
+byte "increaseBudget"
+==
+bnz main_l15
+txna ApplicationArgs 0
+byte "loadState"
+==
+bnz main_l12
+err
+main_l12:
+txna ApplicationArgs 1
+byte ","
+concat
+byte "app_id"
+app_global_get
+itob
+concat
+byte ","
+concat
+txna ApplicationArgs 2
+concat
+byte ","
+concat
+txna ApplicationArgs 3
+concat
+byte ","
+concat
+txna ApplicationArgs 4
+concat
+sha3_256
+txna ApplicationArgs 5
+byte "alice_address"
+app_global_get
+ed25519verify_bare
+txna ApplicationArgs 1
+byte ","
+concat
+byte "app_id"
+app_global_get
+itob
+concat
+byte ","
+concat
+txna ApplicationArgs 2
+concat
+byte ","
+concat
+txna ApplicationArgs 3
+concat
+byte ","
+concat
+txna ApplicationArgs 4
+concat
+sha3_256
+txna ApplicationArgs 6
+byte "bob_address"
+app_global_get
+ed25519verify_bare
+&&
+txna ApplicationArgs 2
+btoi
+txna ApplicationArgs 3
+btoi
++
+byte "total_deposit"
+app_global_get
+==
+&&
+bnz main_l14
+main_l13:
+int 1
+return
+main_l14:
+byte "timeout"
+global Round
+byte "dispute_window"
+app_global_get
++
+app_global_put
+byte "latest_timestamp"
+txna ApplicationArgs 4
+btoi
+app_global_put
+byte "latest_alice_balance"
+txna ApplicationArgs 2
+btoi
+app_global_put
+byte "latest_bob_balance"
+txna ApplicationArgs 3
+btoi
+app_global_put
+b main_l13
+main_l15:
+int 1
+return
+main_l16:
+txn Sender
+byte "alice_address"
+app_global_get
+==
+txn Sender
+byte "bob_address"
+app_global_get
+==
+||
+assert
+txn Sender
+byte "alice_address"
+app_global_get
+==
+bnz main_l20
+txn Sender
+byte "bob_address"
+app_global_get
+==
+bnz main_l19
+int 1
+return
+main_l19:
+byte "latest_bob_balance"
+app_global_get
+txna ApplicationArgs 1
+btoi
+-
+byte "penalty_reserve"
+app_global_get
+>=
+assert
+byte "latest_bob_balance"
+byte "latest_bob_balance"
+app_global_get
+txna ApplicationArgs 1
+btoi
+-
+app_global_put
+byte "latest_alice_balance"
+byte "latest_alice_balance"
+app_global_get
+txna ApplicationArgs 1
+btoi
++
+app_global_put
+int 1
+return
+main_l20:
+byte "latest_alice_balance"
+app_global_get
+txna ApplicationArgs 1
+btoi
+-
+byte "penalty_reserve"
+app_global_get
+>=
+assert
+byte "latest_alice_balance"
+byte "latest_alice_balance"
+app_global_get
+txna ApplicationArgs 1
+btoi
+-
+app_global_put
+byte "latest_bob_balance"
+byte "latest_bob_balance"
+app_global_get
+txna ApplicationArgs 1
+btoi
++
+app_global_put
+int 1
+return
+main_l21:
+txn GroupIndex
+int 1
+-
+gtxns Sender
+txn Sender
+==
+txn GroupIndex
+int 1
+-
+gtxns Sender
+byte "alice_address"
+app_global_get
+==
+&&
+txn GroupIndex
+int 1
+-
+gtxns TypeEnum
+int pay
+==
+&&
+txn GroupIndex
+int 1
+-
+gtxns Amount
+byte "penalty_reserve"
+app_global_get
+global MinTxnFee
++
+>
+&&
+txn GroupIndex
+int 1
+-
+gtxns Receiver
+global CurrentApplicationAddress
+==
+&&
+assert
+byte "latest_alice_balance"
+txn GroupIndex
+int 1
+-
+gtxns Amount
+app_global_put
+byte "total_deposit"
+txn GroupIndex
+int 1
+-
+gtxns Amount
+app_global_put
+int 1
+return
+main_l22:
+int 0
+return
+main_l23:
+int 0
+return
+main_l24:
+txn NumAppArgs
+int 3
+==
+assert
+byte "app_id"
+global CurrentApplicationID
+app_global_put
+byte "alice_address"
+txn Sender
+app_global_put
+byte "bob_address"
+txna ApplicationArgs 0
+app_global_put
+byte "penalty_reserve"
+txna ApplicationArgs 1
+btoi
+app_global_put
+byte "dispute_window"
+txna ApplicationArgs 2
+btoi
+app_global_put
+int 1
+return
