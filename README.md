@@ -39,3 +39,6 @@ docker exec -it asc-bob bash
 1. **<span style="color: yellow;">docker-compose ps</span>** ----> Lists all containers that are running     
 1. **<span style="color: yellow;">docker-compose logs [-f] [container_name]</span>** ----> Shows the logs of all containers, [-f] follows log output, [container_name] shows logs of specific container
 
+
+## Acknowledgements
+This implementation has taken the following resources for assistance: https://github.com/lightningnetwork/lnd by Olaoluwa Osuntokun at Lightning Labs and https://github.com/lnbook/lnbook by Andreas M. Antonopoulos, Olaoluwa Osuntokun and Rene Pickhardt.
