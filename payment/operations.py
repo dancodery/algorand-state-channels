@@ -10,7 +10,7 @@ from algosdk.logic import get_application_address
 from algosdk import encoding
 
 from .account import Account
-from .contracts import approval_program, clear_state_program
+from .payment_contract import approval_program, clear_state_program
 from .util import (
     waitForTransaction,
     fullyCompileContract,
