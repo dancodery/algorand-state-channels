@@ -13,6 +13,7 @@ import (
 	"github.com/algorand/go-algorand-sdk/v2/types"
 )
 
+// CompileTeal compiles a teal file into binary
 func CompileTeal(algodClient *algod.Client, path string) []byte {
 	file_content, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -34,6 +35,7 @@ func CompileTeal(algodClient *algod.Client, path string) []byte {
 	return bin
 }
 
+// CreatePaymentApp creates a new payment channel smart contract
 func CreatePaymentApp(
 	algodClient *algod.Client,
 	senderAccount crypto.Account,
@@ -64,8 +66,12 @@ func CreatePaymentApp(
 	disputeWindowBytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(disputeWindowBytes, disputeWindow)
 
+	pk, err := types.DecodeAddress(partnerAlgoAddress)
+	if err != nil {
+		fmt.Printf("Error decoding address: %v\n", err)
+	}
 	app_args := [][]byte{
-		[]byte(partnerAlgoAddress),
+		pk[:],
 		penaltyReserveBytes,
 		disputeWindowBytes,
 	}
@@ -109,6 +115,7 @@ func CreatePaymentApp(
 	return confirmedTxn.ApplicationIndex
 }
 
+// SetupPaymentApp funds the already created payment app
 func SetupPaymentApp(
 	algodClient *algod.Client,
 	appID uint64,
