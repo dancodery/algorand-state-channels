@@ -1,5 +1,16 @@
 #!/bin/bash
+
 # file based on https://github.com/lnbook/lnbook
+
+# Define the help function
+help() {
+    echo "Usage: $0 --config_file=<file> [-h]"
+    echo "Options:"
+    echo "  --config_file=<file>: Specify the configuration file"
+    echo "  -h: Show help"
+    exit 1
+}
+
 
 # Helper functions
 # run-in-node: Run a command inside a docker container, using the bash shell
@@ -22,35 +33,36 @@ function wait-for-node () {
 }
 
 # Parse command-line arguments
-while [[ $# -gt 0 ]]; do
-	key="$1"
-	case $key in
-		--config_file)
-			config_file="$2"
-			shift
+for arg in "$@"; do
+	case $arg in
+		--config_file=*)
+			CONFIG_FILE="${arg#*=}"
+			;;
+		-h|--help)
+			help
+			exit 0
 			;;
 		*)
-			echo "Invalid argument: $key"
+			echo "Invalid argument: $arg"
+			echo
+			help
 			exit 1
 			;;
 	esac
-
-	shift
 done
 
 # Loading configuration file
-if [[ -z "$config_file" ]]; then
-	echo "No configuration file specified. Using default configuration."
-	echo "Usage: ./payment_channel_demo.sh --config_file=<config_file>"
+if [ -z "$CONFIG_FILE" ]; then
+    help
 	exit 1
 fi
-source "$config_file"
+source "$CONFIG_FILE"
 
-echo "Configuration values:"
-echo "runs=$runs"
-echo "port=$port"
-echo "outfile=$outfile"
-echo
+# echo "Configuration values:"
+# echo "runs=$runs"
+# echo "port=$port"
+# echo "outfile=$outfile"
+# echo
 
 ### Start the demo ###
 echo "Starting the demo..."
