@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -10,10 +11,19 @@ import (
 	"github.com/dancodery/algorand-state-channels/payment/testing"
 )
 
+type paymentChannelState struct {
+	app_id uint64
+
+	timestamp uint64
+}
+
 type server struct {
 	// started int32
 	algod_client *algod.Client
 	algo_account crypto.Account
+
+	payment_channel_app_ids   []uint64
+	payment_channel_state_log map[uint64]paymentChannelState
 
 	peer_port     int
 	grpc_port     int
@@ -66,62 +76,72 @@ func (s *server) startListening() error {
 				log.Fatalf("Error accepting: %v\n", err)
 				return
 			}
-			go handleConnection(conn)
+			go s.handleConnection(conn)
 		}
 	}()
 	return nil
 }
 
-func handleConnection(conn net.Conn) {
-	fmt.Println("handleConnection new")
+func (s *server) handleConnection(conn net.Conn) {
+	defer conn.Close()
+
+	client_request_data := make([]byte, 1024)
+	n, err := conn.Read(client_request_data)
+	if err != nil {
+		log.Fatalf("Error reading: %v\n", err)
+		return
+	}
+
+	var client_request P2PRequest
+	err = json.Unmarshal(client_request_data[:n], &client_request)
+	if err != nil {
+		log.Fatalf("Error unmarshalling: %v\n", err)
+		return
+	}
+
+	// process request
+	var server_response P2PResponse
+	switch client_request.Command {
+	case "open_channel":
+		app_id := parseInt(client_request.Args[0])
+		s.payment_channel_app_ids = append(s.payment_channel_app_ids, uint64(app_id))
+
+		// print payment channel app ids
+		fmt.Printf("Payment channel app ids: %v\n", s.payment_channel_app_ids)
+
+		fmt.Printf("I was notified that payment channel with app_id %d was opened\n", app_id)
+		server_response.Message = "approve"
+	case "close_channel":
+		fmt.Println("close_channel")
+	default:
+		fmt.Println("Received unknown command")
+	}
+
+	// conver P2PResponse to json
+	server_response_data, err := json.Marshal(server_response)
+	if err != nil {
+		log.Fatalf("Error marshalling: %v\n", err)
+		return
+	}
+
+	// send response to client
+	_, err = conn.Write(server_response_data)
+	if err != nil {
+		log.Fatalf("Error writing: %v\n", err)
+		return
+	}
+}
+
+func parseInt(s string) int {
+	var i int
+	_, err := fmt.Sscanf(s, "%d", &i)
+	if err != nil {
+		log.Fatalf("Error parsing int: %v\n", err)
+	}
+	return i
 }
 
 // func (s *server) stop() error {
 // 	fmt.Println("stop")
 // 	return nil
 // }
-
-// func (s *server) queryHandler() {
-
-// }
-
-// signalChan := make(chan os.Signal, 1)
-// signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
-
-// func (c *config) init(args []string) error {
-// 	return nil
-// }
-
-// func run(ctx context.Context, cfg *config, out io.Writer) error {
-// 	c.init(os.Args)
-// 	log.SetOutput(out)
-
-// 	for {
-// 		select {
-// 		case <-ctx.Done():
-// 			return nil
-// 		case <-time.After(1 * time.Second):
-// 			log.Println("tick")
-// 		}
-// 	}
-// }
-
-// go func() {
-// 	for {
-// 		select {
-// 		case s:= <-signalChan:
-// 			switch s {
-// 			case syscall.SIGINT, syscall.SIGTERM:
-// 				log.Printf("Received SIGINT/SIGTERM, exiting gracefully...")
-// 				cancel()
-// 				os.Exit(1)
-// 			case syscall.SIGHUP:
-// 				log.Printf("Received SIGHUP, reloading...")
-// 				c.init(os.Args)
-// 			}
-// 		case <-ctx.Done():
-// 			log.Printf("Done.")
-// 			os.Exit(1)
-// 		}
-// 	}
-// }()
