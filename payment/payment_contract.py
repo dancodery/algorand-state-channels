@@ -8,6 +8,7 @@ FILENAME = "payment"
 
 def approval_program():
 	app_id = Bytes("app_id")						# uint: stores the app_id of the smart contract
+													# , needed for protecting against replay attacks
 
 	alice_address = Bytes("alice_address")			# byte_slice: creator and funder of the smart contract												
 	bob_address = Bytes("bob_address")				# byte_slice: counterparty
