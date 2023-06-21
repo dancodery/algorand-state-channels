@@ -232,12 +232,27 @@ func SignState(
 		fmt.Printf("Error getting suggested params: %v\n", err)
 	}
 
+	algorandPortBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(algorandPortBytes, algorandPort)
+
+	aliceBalanceBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(aliceBalanceBytes, aliceBalance)
+
+	bobBalanceBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(bobBalanceBytes, bobBalance)
+
+	timestampBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(timestampBytes, timestamp)
+
 	app_args := [][]byte{
 		[]byte("loadState"),
 		// BEGIN SIGNED VALUES
-		[]byte("1"), []byte("1"), []byte("1"), []byte("1"),
+		algorandPortBytes, // algorand_port
+		aliceBalanceBytes, // alice_balance
+		bobBalanceBytes,   // bob_balance
+		timestampBytes,    // timestamp
 		// END SIGNED VALUES
-		[]byte("1"),
+		alice_signed_bytes,
 	}
 
 	callAppLoadStateTxn, err := transaction.MakeApplicationNoOpTx(
@@ -257,18 +272,12 @@ func SignState(
 		fmt.Printf("Error creating application call 'loadState' transaction: %v\n", err)
 	}
 
-	//  crypto.SignTransaction(senderAccount.PrivateKey, callAppFundTxn)
-	_, signedCallAppLoadStateTxn, err := crypto.SignTransaction(alice.PrivateKey, callAppLoadStateTxn)
-	if err != nil {
-		fmt.Printf("Error signing transaction: %v\n", err)
-	}
-
 	// increase budget and send transaction
 	IncreaseBudgetSignAndSendTransaction(
 		client,
 		appID,
 		alice,
-		signedCallAppLoadStateTxn,
+		callAppLoadStateTxn,
 		3930) // 1x Sha3_256 a 130 + 2x Ed25519Verify a 1900
 
 }
@@ -283,7 +292,7 @@ func IncreaseBudgetSignAndSendTransaction(
 	client *algod.Client,
 	appID uint64,
 	sender crypto.Account,
-	mainTransaction []byte,
+	unsignedMainTransaction types.Transaction,
 	targetAmount uint64,
 ) {
 	// get suggested params
@@ -294,7 +303,8 @@ func IncreaseBudgetSignAndSendTransaction(
 
 	amountOfIncreaseBudgetTransactions := math.Ceil(float64(targetAmount) / 700)
 
-	var signedIncreaseBudgetTransactions [][]byte
+	// create unsigned transactions
+	var unsingedIncreaseBudgetTransactions []types.Transaction
 	for i := 0; i < int(amountOfIncreaseBudgetTransactions); i++ {
 		increaseBudgetAppTxn, err := transaction.MakeApplicationNoOpTx(
 			appID, // app_id
@@ -315,23 +325,44 @@ func IncreaseBudgetSignAndSendTransaction(
 		if err != nil {
 			fmt.Printf("Error creating application call 'increaseBudget' transaction: %v\n", err)
 		}
+		unsingedIncreaseBudgetTransactions = append(unsingedIncreaseBudgetTransactions, increaseBudgetAppTxn)
+	}
 
-		// sign transaction
+	// compute group id
+	group_id, err := crypto.ComputeGroupID(append([]types.Transaction{unsignedMainTransaction}, unsingedIncreaseBudgetTransactions...))
+	if err != nil {
+		fmt.Printf("Error computing group id: %v\n", err)
+	}
+	unsignedMainTransaction.Group = group_id
+	for _, txn := range unsingedIncreaseBudgetTransactions {
+		txn.Group = group_id
+	}
+
+	// sign transactions
+
+	// _, signedMainTransaction, err := crypto.SignTransaction(sender.PrivateKey, unsignedMainTransaction)
+	// if err != nil {
+	// 	fmt.Printf("Error signing main transaction: %v\n", err)
+	// }
+
+	var signedIncreaseBudgetTransactions [][]byte
+	// iterate over unsignedIncreaseBudgetTransactions and sign them
+	for _, increaseBudgetAppTxn := range unsingedIncreaseBudgetTransactions {
 		_, signedIncreaseBudgetAppTxn, err := crypto.SignTransaction(sender.PrivateKey, increaseBudgetAppTxn)
 		if err != nil {
 			fmt.Printf("Error signing 'increaseBudget' transaction: %v\n", err)
 		}
-
-		// append signed transaction to array
 		signedIncreaseBudgetTransactions = append(signedIncreaseBudgetTransactions, signedIncreaseBudgetAppTxn)
 	}
 
+	// append signed transactions to group
 	var signedGroupTxns []byte
-	signedGroupTxns = append(signedGroupTxns, mainTransaction...)
+	// signedGroupTxns = append(signedGroupTxns, signedMainTransaction...)
 	for _, signedTxn := range signedIncreaseBudgetTransactions {
 		signedGroupTxns = append(signedGroupTxns, signedTxn...)
 	}
 
+	// submit group transaction
 	pending_txn_id, err := client.SendRawTransaction(signedGroupTxns).Do(context.Background())
 	if err != nil {
 		fmt.Printf("Error submitting transaction: %v\n", err)
