@@ -8,6 +8,8 @@ service ASRPC {
     rpc GetInfo(GetInfoRequest) returns (GetInfoResponse) {}
 
     rpc OpenChannel(OpenChannelRequest) returns (OpenChannelResponse) {}
+
+    rpc Pay(PayRequest) returns (PayResponse) {}
 }
 
 message StateChannelNodeAddress {
@@ -37,4 +39,13 @@ message OpenChannelRequest {
 message OpenChannelResponse {
     uint64 app_id = 1;
     RuntimeRecording runtime_recording = 2;
+}
+
+message PayRequest {
+    StateChannelNodeAddress partner_node = 1;
+    uint64 amount = 2;
+}
+
+message PayResponse {
+    RuntimeRecording runtime_recording = 1;
 }

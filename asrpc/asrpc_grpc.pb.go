@@ -24,6 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 type ASRPCClient interface {
 	GetInfo(ctx context.Context, in *GetInfoRequest, opts ...grpc.CallOption) (*GetInfoResponse, error)
 	OpenChannel(ctx context.Context, in *OpenChannelRequest, opts ...grpc.CallOption) (*OpenChannelResponse, error)
+	Pay(ctx context.Context, in *PayRequest, opts ...grpc.CallOption) (*PayResponse, error)
 }
 
 type aSRPCClient struct {
@@ -52,12 +53,22 @@ func (c *aSRPCClient) OpenChannel(ctx context.Context, in *OpenChannelRequest, o
 	return out, nil
 }
 
+func (c *aSRPCClient) Pay(ctx context.Context, in *PayRequest, opts ...grpc.CallOption) (*PayResponse, error) {
+	out := new(PayResponse)
+	err := c.cc.Invoke(ctx, "/ASRPC/Pay", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ASRPCServer is the server API for ASRPC service.
 // All implementations must embed UnimplementedASRPCServer
 // for forward compatibility
 type ASRPCServer interface {
 	GetInfo(context.Context, *GetInfoRequest) (*GetInfoResponse, error)
 	OpenChannel(context.Context, *OpenChannelRequest) (*OpenChannelResponse, error)
+	Pay(context.Context, *PayRequest) (*PayResponse, error)
 	mustEmbedUnimplementedASRPCServer()
 }
 
@@ -70,6 +81,9 @@ func (UnimplementedASRPCServer) GetInfo(context.Context, *GetInfoRequest) (*GetI
 }
 func (UnimplementedASRPCServer) OpenChannel(context.Context, *OpenChannelRequest) (*OpenChannelResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method OpenChannel not implemented")
+}
+func (UnimplementedASRPCServer) Pay(context.Context, *PayRequest) (*PayResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Pay not implemented")
 }
 func (UnimplementedASRPCServer) mustEmbedUnimplementedASRPCServer() {}
 
@@ -120,6 +134,24 @@ func _ASRPC_OpenChannel_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ASRPC_Pay_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PayRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ASRPCServer).Pay(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ASRPC/Pay",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ASRPCServer).Pay(ctx, req.(*PayRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ASRPC_ServiceDesc is the grpc.ServiceDesc for ASRPC service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -134,6 +166,10 @@ var ASRPC_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "OpenChannel",
 			Handler:    _ASRPC_OpenChannel_Handler,
+		},
+		{
+			MethodName: "Pay",
+			Handler:    _ASRPC_Pay_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
