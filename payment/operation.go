@@ -6,11 +6,14 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
+	"math"
+	"strconv"
 
 	"github.com/algorand/go-algorand-sdk/v2/client/v2/algod"
 	"github.com/algorand/go-algorand-sdk/v2/crypto"
 	"github.com/algorand/go-algorand-sdk/v2/transaction"
 	"github.com/algorand/go-algorand-sdk/v2/types"
+	"golang.org/x/crypto/sha3"
 )
 
 // CompileTeal compiles a teal file into binary
@@ -191,3 +194,196 @@ func SetupPaymentApp(
 		fmt.Printf("Error waiting for confirmation: %v\n", err)
 	}
 }
+
+func SignState(
+	client *algod.Client,
+	appID uint64,
+	alice crypto.Account,
+	aliceBalance uint64,
+	bobBalance uint64,
+	algorandPort uint64,
+) {
+	var timestamp uint64 = 1685318789
+
+	data_raw := make([]byte, 0)
+	data_raw = append(data_raw, uint64ToBytes(algorandPort)...)
+	data_raw = append(data_raw, []byte(",")...)
+	data_raw = append(data_raw, uint64ToBytes(appID)...)
+	data_raw = append(data_raw, []byte(",")...)
+	data_raw = append(data_raw, uint64ToBytes(aliceBalance)...)
+	data_raw = append(data_raw, []byte(",")...)
+	data_raw = append(data_raw, uint64ToBytes(bobBalance)...)
+	data_raw = append(data_raw, []byte(",")...)
+	data_raw = append(data_raw, uint64ToBytes(timestamp)...)
+	data_raw = append(data_raw, []byte(",")...)
+
+	data_hashed := sha3.Sum256(data_raw)
+
+	alice_signed_bytes, err := crypto.SignBytes(alice.PrivateKey, data_hashed[:])
+	if err != nil {
+		fmt.Printf("Error signing bytes: %v\n", err)
+	}
+
+	// print signed bytes
+	fmt.Printf("Signed bytes: %v\n", base64.StdEncoding.EncodeToString(alice_signed_bytes))
+
+	sp, err := client.SuggestedParams().Do(context.Background())
+	if err != nil {
+		fmt.Printf("Error getting suggested params: %v\n", err)
+	}
+
+	app_args := [][]byte{
+		[]byte("loadState"),
+		// BEGIN SIGNED VALUES
+		[]byte("1"), []byte("1"), []byte("1"), []byte("1"),
+		// END SIGNED VALUES
+		[]byte("1"),
+	}
+
+	callAppLoadStateTxn, err := transaction.MakeApplicationNoOpTx(
+		appID,             // app_id
+		app_args,          // app_args
+		nil,               // accounts
+		nil,               // foreign_apps
+		nil,               // foreign_assets
+		sp,                // sp
+		alice.Address,     // sender
+		nil,               // note
+		types.Digest{},    // group
+		[32]byte{},        // lease
+		types.ZeroAddress, // rekey_to
+	)
+	if err != nil {
+		fmt.Printf("Error creating application call 'loadState' transaction: %v\n", err)
+	}
+
+	//  crypto.SignTransaction(senderAccount.PrivateKey, callAppFundTxn)
+	_, signedCallAppLoadStateTxn, err := crypto.SignTransaction(alice.PrivateKey, callAppLoadStateTxn)
+	if err != nil {
+		fmt.Printf("Error signing transaction: %v\n", err)
+	}
+
+	// increase budget and send transaction
+	IncreaseBudgetSignAndSendTransaction(
+		client,
+		appID,
+		alice,
+		signedCallAppLoadStateTxn,
+		3930) // 1x Sha3_256 a 130 + 2x Ed25519Verify a 1900
+
+}
+
+func uint64ToBytes(val uint64) []byte {
+	b := make([]byte, 8)
+	binary.BigEndian.PutUint64(b, val)
+	return b
+}
+
+func IncreaseBudgetSignAndSendTransaction(
+	client *algod.Client,
+	appID uint64,
+	sender crypto.Account,
+	mainTransaction []byte,
+	targetAmount uint64,
+) {
+	// get suggested params
+	sp, err := client.SuggestedParams().Do(context.Background())
+	if err != nil {
+		fmt.Printf("Error getting suggested params: %v\n", err)
+	}
+
+	amountOfIncreaseBudgetTransactions := math.Ceil(float64(targetAmount) / 700)
+
+	var signedIncreaseBudgetTransactions [][]byte
+	for i := 0; i < int(amountOfIncreaseBudgetTransactions); i++ {
+		increaseBudgetAppTxn, err := transaction.MakeApplicationNoOpTx(
+			appID, // app_id
+			[][]byte{
+				[]byte("increaseBudget"),
+				[]byte(strconv.Itoa(i)),
+			}, // app_args
+			nil,               // accounts
+			nil,               // foreign_apps
+			nil,               // foreign_assets
+			sp,                // suggested params
+			sender.Address,    // sender
+			nil,               // note
+			types.Digest{},    // group
+			[32]byte{},        // lease
+			types.ZeroAddress, // rekey_to
+		)
+		if err != nil {
+			fmt.Printf("Error creating application call 'increaseBudget' transaction: %v\n", err)
+		}
+
+		// sign transaction
+		_, signedIncreaseBudgetAppTxn, err := crypto.SignTransaction(sender.PrivateKey, increaseBudgetAppTxn)
+		if err != nil {
+			fmt.Printf("Error signing 'increaseBudget' transaction: %v\n", err)
+		}
+
+		// append signed transaction to array
+		signedIncreaseBudgetTransactions = append(signedIncreaseBudgetTransactions, signedIncreaseBudgetAppTxn)
+	}
+
+	var signedGroupTxns []byte
+	signedGroupTxns = append(signedGroupTxns, mainTransaction...)
+	for _, signedTxn := range signedIncreaseBudgetTransactions {
+		signedGroupTxns = append(signedGroupTxns, signedTxn...)
+	}
+
+	pending_txn_id, err := client.SendRawTransaction(signedGroupTxns).Do(context.Background())
+	if err != nil {
+		fmt.Printf("Error submitting transaction: %v\n", err)
+	}
+
+	// wait for confirmation
+	_, err = transaction.WaitForConfirmation(client, pending_txn_id, 4, context.Background())
+	if err != nil {
+		fmt.Printf("Error waiting for confirmation: %v\n", err)
+	}
+}
+
+// suggestedParams = client.suggested_params()
+
+// bob_signed_bytes = signBytes(data_hashed, bob.getPrivateKey())
+
+// # alice_pub_key = alice.getAddress()
+// # bob_pub_key = bob.getAddress()
+
+// # print(data.hex())
+// # print(base64.b64decode(signed_bytes).hex())
+// # print(encoding.decode_address(pub_key).hex(), "\n")
+// # if verifyBytes(data, signed_bytes, pub_key):
+// #     print("Signature is valid")
+// # else:
+// #     print("Signature is invalid")
+
+// app_args = [
+// 	b"loadState",
+// 	# BEGIN signed values
+// 	(algorand_port).to_bytes(8, "big"), # algorand_port
+// 	(alice_balance).to_bytes(8, "big"), # alice_balance
+// 	(bob_balance).to_bytes(8, "big"), # bob_balance
+// 	(timestamp).to_bytes(8, "big"), # timestamp
+// 	# END signed values
+// 	base64.b64decode(alice_signed_bytes),
+// 	base64.b64decode(bob_signed_bytes),
+// ]
+// signStateAppTxn = transaction.ApplicationCallTxn(
+// 	sender=alice.getAddress(),
+// 	index=appID,
+// 	on_complete=transaction.OnComplete.NoOpOC,
+// 	app_args=app_args,
+// 	sp=suggestedParams,
+// )
+// increaseBudgetSignAndSendTransaction(client, appID, alice, signStateAppTxn, 3930) # 1x Sha3_256 a 130 + 2x Ed25519Verify a 1900
+
+// # return Alice and Bob's balances
+// newGlobalState = getAppGlobalState(client, appID)
+// aliceBalance = newGlobalState[b"latest_alice_balance"]
+// try:
+// 	bobBalance = newGlobalState[b"latest_bob_balance"]
+// except KeyError:
+// 	bobBalance = 0
+// return (aliceBalance, bobBalance)
