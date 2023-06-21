@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 
 	"github.com/algorand/go-algorand-sdk/v2/client/v2/algod"
 	"github.com/algorand/go-algorand-sdk/v2/client/v2/common/models"
@@ -15,13 +16,21 @@ import (
 	"github.com/dancodery/algorand-state-channels/payment/testing"
 )
 
-type paymentChannelState struct {
+type paymentChannelOnChainState struct {
 	app_id uint64
+
+	alice_address string
+	bob_address   string
 
 	alice_latest_balance uint64
 	bob_latest_balance   uint64
 
-	timestamp uint64
+	total_deposit   uint64
+	penalty_reserve uint64
+	dispute_window  uint64
+}
+
+type paymentChannelOffChainState struct {
 }
 
 type server struct {
@@ -29,9 +38,10 @@ type server struct {
 	algod_client *algod.Client
 	algo_account crypto.Account
 
-	payment_channel_app_ids         []uint64
-	payment_channel_state_of_app_id map[uint64]paymentChannelState
-	payment_channel_onchain_state   map[string]paymentChannelState
+	// payment_channel_app_ids              []uint64
+	// payment_channel_state_of_app_id      map[uint64]paymentChannelOnChainState
+	payment_channels_onchain_states      map[string]paymentChannelOnChainState
+	payment_cahnnels_offchain_states_log map[string]map[int64]paymentChannelOffChainState
 
 	peer_port     int
 	grpc_port     int
@@ -46,7 +56,9 @@ func initializeServer(peerPort int, grpcPort int) (*server, error) {
 		grpc_port: grpcPort,
 
 		// payment_channel_app_ids:         make([]uint64, 0),
-		payment_channel_state_of_app_id: make(map[uint64]paymentChannelState),
+		// payment_channel_state_of_app_id: make(map[uint64]paymentChannelOnChainState),
+		payment_channels_onchain_states:      make(map[string]paymentChannelOnChainState),
+		payment_cahnnels_offchain_states_log: make(map[string]map[int64]paymentChannelOffChainState),
 	}
 
 	s.rpcServer = newRpcServer(s)
@@ -125,11 +137,13 @@ func (s *server) handleConnection(conn net.Conn) {
 
 		// TODO: verify smart contract hash with local copy
 
-		// savePaymentChannelState(app_info.Params.GlobalState, &s.payment_channel_state_of_app_id[app_id])
-		printGlobalSmartContractState(app_info.Params.GlobalState)
+		// save new payment channel on global state variables
+		s.savePaymentChannelOnChainState(app_id, app_info.Params.GlobalState)
 
-		s.payment_channel_app_ids = append(s.payment_channel_app_ids, uint64(app_id))
 		fmt.Printf("I was notified that payment channel with app_id %d was opened\n", app_id)
+		// print s.payment_channels_onchain_states
+		fmt.Println("payment_channels_onchain_states: ", s.payment_channels_onchain_states)
+
 		server_response.Message = "approve"
 	case "close_channel":
 		fmt.Println("close_channel")
@@ -164,14 +178,17 @@ func parseInt(s string) int {
 	return i
 }
 
-func printGlobalSmartContractState(global_state []models.TealKeyValue) {
+func (s *server) savePaymentChannelOnChainState(appID uint64, global_state []models.TealKeyValue) {
+	onchain_state := &paymentChannelOnChainState{
+		app_id: appID,
+	}
+
 	for _, teal_key_value := range global_state {
 		// decode base64 for teal_key_value.Key
 		decoded_key, err := base64.StdEncoding.DecodeString(teal_key_value.Key)
 		if err != nil {
 			log.Fatalf("Error decoding base64: %v\n", err)
 		}
-		fmt.Printf("Decoded Key: %s", decoded_key)
 
 		switch teal_key_value.Value.Type {
 		case 1: // it's bytes, probably an algo address
@@ -183,27 +200,38 @@ func printGlobalSmartContractState(global_state []models.TealKeyValue) {
 			if err != nil {
 				log.Fatalf("Error encoding address: %v\n", err)
 			}
-			fmt.Printf("Value: %s\n", address)
 
-			// fmt.Printf("Decoded Value: %s\n", decoded_value)
+			switch string(decoded_key) {
+			case "alice_address":
+				onchain_state.alice_address = address
+			case "bob_address":
+				onchain_state.bob_address = address
+			}
 		case 2: // it's uint64
-			fmt.Printf("Value: %d\n", teal_key_value.Value.Uint)
+
+			switch string(decoded_key) {
+			case "dispute_window":
+				onchain_state.dispute_window = teal_key_value.Value.Uint
+			case "total_deposit":
+				onchain_state.total_deposit = teal_key_value.Value.Uint
+			case "penalty_reserve":
+				onchain_state.penalty_reserve = teal_key_value.Value.Uint
+			case "latest_alice_balance":
+				onchain_state.alice_latest_balance = teal_key_value.Value.Uint
+			case "latest_bob_balance":
+				onchain_state.bob_latest_balance = teal_key_value.Value.Uint
+			}
 		}
 	}
-}
+	// check if bob_address is really my address
+	if s.algo_account.Address.String() != onchain_state.bob_address {
+		fmt.Fprintf(os.Stdout, "I am not involved in this payment channel contract!\n")
+		return
+	}
 
-// func savePaymentChannelState(global_state []types.TealKeyValue, state *paymentChannelState) {
-// 	for teal_key, teal_value := range global_state {
-// 		switch teal_key {
-// 		case "alice_latest_balance":
-// 			state.alice_latest_balance = uint64(parseInt(teal_value.Value))
-// 		case "bob_latest_balance":
-// 			state.bob_latest_balance = uint64(parseInt(teal_value.Value))
-// 		case "timestamp":
-// 			state.timestamp = uint64(parseInt(teal_value.Value))
-// 		}
-// 	}
-// }
+	// save onchain_state in map
+	s.payment_channels_onchain_states[onchain_state.alice_address] = *onchain_state
+}
 
 // func (s *server) stop() error {
 // 	fmt.Println("stop")
