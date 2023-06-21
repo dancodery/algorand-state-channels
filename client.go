@@ -18,9 +18,7 @@ type P2PResponse struct {
 	// Data interface{}
 }
 
-// status, err := bufio.NewReader(conn).ReadString('\n')
-
-func notifyOpenChannel(recipient_ip string, app_id uint64) {
+func sendRequest(recipient_ip string, request P2PRequest) {
 	// connect to peer server
 	conn, err := net.Dial("tcp", recipient_ip+":"+strconv.Itoa(DEFAULT_PEER_PORT))
 	if err != nil {
@@ -28,11 +26,6 @@ func notifyOpenChannel(recipient_ip string, app_id uint64) {
 	}
 	defer conn.Close()
 
-	// send request to peer server
-	sendRequest(conn, P2PRequest{Command: "open_channel", Args: []string{strconv.FormatUint(app_id, 10)}})
-}
-
-func sendRequest(conn net.Conn, request P2PRequest) {
 	json_request, err := json.Marshal(request)
 	if err != nil {
 		fmt.Fprintf(os.Stdout, "Error marshalling request: %v\n", err)
@@ -66,5 +59,4 @@ func sendRequest(conn net.Conn, request P2PRequest) {
 
 	// print response to stdout
 	fmt.Fprintf(os.Stdout, response.Message+"\n")
-
 }
