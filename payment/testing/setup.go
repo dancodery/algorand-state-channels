@@ -38,33 +38,6 @@ func GetKmdClient() kmd.Client {
 	return kmdClient
 }
 
-// func getGenesisAccounts() ([]*crypto.Account, error) {
-// 	kmdClient := getKmdClient()
-
-// 	response, err := kmdClient.ListWallets()
-
-// 	// get genesis accounts
-// 	algodClient := getAlgodClient()
-// 	genesisAccounts, err := algodClient.GetGenesisAccounts()
-// 	if err != nil {
-// 		log.Fatalf("failed to get genesis accounts: %v\n", err)
-// 		return nil, err
-// 	}
-
-// 	// convert genesis accounts to accounts
-// 	accounts := make([]*crypto.Account, len(genesisAccounts))
-// 	for i, genesisAccount := range genesisAccounts {
-// 		accounts[i] = &crypto.Account{
-// 			Address: genesisAccount.Address,
-// 			Amount:  genesisAccount.Amount,
-// 		}
-// 	}
-
-// 	return accounts, nil
-// }
-
-// func GetTemporaryAccount(algodClient *algod.Client) crypto.Account {
-
 func GetSandboxAccounts() ([]crypto.Account, error) {
 	client := GetKmdClient()
 
