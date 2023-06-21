@@ -45,8 +45,8 @@ func main() {
 	app.Commands = []cli.Command{
 		getInfoCommand,
 		openChannelCommand,
-		closeChannelCommand,
 		payCommand,
+		closeChannelCommand,
 	}
 
 	if err := app.Run(os.Args); err != nil {
