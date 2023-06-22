@@ -215,10 +215,8 @@ func SignState(
 	data_raw = append(data_raw, uint64ToBytes(bobBalance)...)
 	data_raw = append(data_raw, []byte(",")...)
 	data_raw = append(data_raw, uint64ToBytes(timestamp)...)
-	data_raw = append(data_raw, []byte(",")...)
 
 	data_hashed := sha3.Sum256(data_raw)
-
 	alice_signed_bytes, err := crypto.SignBytes(alice.PrivateKey, data_hashed[:])
 	if err != nil {
 		fmt.Printf("Error signing bytes: %v\n", err)
@@ -304,7 +302,7 @@ func IncreaseBudgetSignAndSendTransaction(
 	amountOfIncreaseBudgetTransactions := math.Ceil(float64(targetAmount) / 700)
 
 	// create unsigned transactions
-	var unsingedIncreaseBudgetTransactions []types.Transaction
+	var unsignedIncreaseBudgetTransactions []types.Transaction
 	for i := 0; i < int(amountOfIncreaseBudgetTransactions); i++ {
 		increaseBudgetAppTxn, err := transaction.MakeApplicationNoOpTx(
 			appID, // app_id
@@ -325,29 +323,29 @@ func IncreaseBudgetSignAndSendTransaction(
 		if err != nil {
 			fmt.Printf("Error creating application call 'increaseBudget' transaction: %v\n", err)
 		}
-		unsingedIncreaseBudgetTransactions = append(unsingedIncreaseBudgetTransactions, increaseBudgetAppTxn)
+		unsignedIncreaseBudgetTransactions = append(unsignedIncreaseBudgetTransactions, increaseBudgetAppTxn)
 	}
 
 	// compute group id
-	group_id, err := crypto.ComputeGroupID(append([]types.Transaction{unsignedMainTransaction}, unsingedIncreaseBudgetTransactions...))
+	group_id, err := crypto.ComputeGroupID(append([]types.Transaction{unsignedMainTransaction}, unsignedIncreaseBudgetTransactions...))
 	if err != nil {
 		fmt.Printf("Error computing group id: %v\n", err)
 	}
 	unsignedMainTransaction.Group = group_id
-	for _, txn := range unsingedIncreaseBudgetTransactions {
-		txn.Group = group_id
+	for i := 0; i < len(unsignedIncreaseBudgetTransactions); i++ {
+		unsignedIncreaseBudgetTransactions[i].Group = group_id
 	}
 
 	// sign transactions
 
-	// _, signedMainTransaction, err := crypto.SignTransaction(sender.PrivateKey, unsignedMainTransaction)
-	// if err != nil {
-	// 	fmt.Printf("Error signing main transaction: %v\n", err)
-	// }
+	_, signedMainTransaction, err := crypto.SignTransaction(sender.PrivateKey, unsignedMainTransaction)
+	if err != nil {
+		fmt.Printf("Error signing main transaction: %v\n", err)
+	}
 
 	var signedIncreaseBudgetTransactions [][]byte
 	// iterate over unsignedIncreaseBudgetTransactions and sign them
-	for _, increaseBudgetAppTxn := range unsingedIncreaseBudgetTransactions {
+	for _, increaseBudgetAppTxn := range unsignedIncreaseBudgetTransactions {
 		_, signedIncreaseBudgetAppTxn, err := crypto.SignTransaction(sender.PrivateKey, increaseBudgetAppTxn)
 		if err != nil {
 			fmt.Printf("Error signing 'increaseBudget' transaction: %v\n", err)
@@ -357,7 +355,7 @@ func IncreaseBudgetSignAndSendTransaction(
 
 	// append signed transactions to group
 	var signedGroupTxns []byte
-	// signedGroupTxns = append(signedGroupTxns, signedMainTransaction...)
+	signedGroupTxns = append(signedGroupTxns, signedMainTransaction...)
 	for _, signedTxn := range signedIncreaseBudgetTransactions {
 		signedGroupTxns = append(signedGroupTxns, signedTxn...)
 	}
