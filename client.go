@@ -16,7 +16,7 @@ type P2PRequest struct {
 
 type P2PResponse struct {
 	Message string
-	// Data interface{}
+	Data    [][]byte
 }
 
 func sendRequest(recipient_ip string, request P2PRequest) (response P2PResponse, err error) {
