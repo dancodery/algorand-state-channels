@@ -10,7 +10,8 @@ import (
 
 type P2PRequest struct {
 	Command string
-	Args    []string
+	// Args    []string
+	Args [][]byte
 }
 
 type P2PResponse struct {
@@ -18,7 +19,7 @@ type P2PResponse struct {
 	// Data interface{}
 }
 
-func sendRequest(recipient_ip string, request P2PRequest) {
+func sendRequest(recipient_ip string, request P2PRequest) (response P2PResponse, err error) {
 	// connect to peer server
 	conn, err := net.Dial("tcp", recipient_ip+":"+strconv.Itoa(DEFAULT_PEER_PORT))
 	if err != nil {
@@ -29,7 +30,7 @@ func sendRequest(recipient_ip string, request P2PRequest) {
 	json_request, err := json.Marshal(request)
 	if err != nil {
 		fmt.Fprintf(os.Stdout, "Error marshalling request: %v\n", err)
-		return
+		return P2PResponse{}, err
 	}
 
 	// print json_request to stdout
@@ -39,7 +40,7 @@ func sendRequest(recipient_ip string, request P2PRequest) {
 	_, err = conn.Write(json_request)
 	if err != nil {
 		fmt.Fprintf(os.Stdout, "Error sending request: %v\n", err)
-		return
+		return P2PResponse{}, err
 	}
 
 	// read response from peer server
@@ -47,16 +48,16 @@ func sendRequest(recipient_ip string, request P2PRequest) {
 	n, err := conn.Read(responseData)
 	if err != nil {
 		fmt.Fprintf(os.Stdout, "Error reading response: %v\n", err)
-		return
+		return P2PResponse{}, err
 	}
 
-	var response P2PResponse
-	err = json.Unmarshal(responseData[:n], &response)
+	var server_response P2PResponse
+	err = json.Unmarshal(responseData[:n], &server_response)
 	if err != nil {
-		fmt.Fprintf(os.Stdout, "Error unmarshalling response: %v\n", err)
-		return
+		fmt.Fprintf(os.Stdout, "Error unmarshalling server_response: %v\n", err)
+		return P2PResponse{}, err
 	}
 
-	// print response to stdout
-	fmt.Fprintf(os.Stdout, response.Message+"\n")
+	// return response
+	return server_response, nil
 }
