@@ -154,13 +154,64 @@ func (r *rpcServer) Pay(ctx context.Context, in *asrpc.PayRequest) (*asrpc.PayRe
 		newBobBalanceBytes,                             // 3. partner's new balance
 		my_signature,                                   // 4. my signature
 	}})
-
 	if err != nil {
 		fmt.Printf("Error sending pay request to partner node: %v\n", err)
 		return nil, err
 	}
-	fmt.Printf("Partner node response: %v\n", server_response.Message)
 
+	// 5. read partner node's response
+	fmt.Printf("Partner node response: %v\n", server_response.Message)
+	if server_response.Message != "approve" {
+		fmt.Printf("Partner node rejected pay request\n")
+		return nil, fmt.Errorf("partner node rejected pay request")
+	}
+
+	// 6. verify partner node's signature
+	partner_signature := server_response.Data[0]
+
+	partner_verified := payment.VerifyState(
+		onchain_state.app_id,
+		new_alice_balance,
+		new_bob_balance,
+		4161,
+		partner_signature,
+		in.PartnerNode.AlgoAddress)
+	if !partner_verified {
+		fmt.Printf("Partner node's signature is invalid\n")
+		return nil, fmt.Errorf("partner node's signature is invalid")
+	}
+
+	// 7. save new state
+	var timestamp int64 = 1685318789
+
+	off_chain_state := &paymentChannelOffChainState{
+		timestamp: timestamp,
+
+		alice_balance: new_alice_balance,
+		bob_balance:   new_bob_balance,
+
+		alice_signature: my_signature,
+		bob_signature:   partner_signature,
+
+		algorand_port: 4161,
+		app_id:        onchain_state.app_id,
+	}
+
+	if r.server.payment_channels_offchain_states_log[in.PartnerNode.AlgoAddress] == nil {
+		r.server.payment_channels_offchain_states_log[in.PartnerNode.AlgoAddress] = make(map[int64]paymentChannelOffChainState)
+	}
+	r.server.payment_channels_offchain_states_log[in.PartnerNode.AlgoAddress][timestamp] = *off_chain_state
+
+	// 8. update on chain state
+	payment.LoadState(
+		r.server.algod_client,
+		onchain_state.app_id,
+		r.server.algo_account,
+		new_alice_balance,
+		new_bob_balance,
+		4161,
+		my_signature,
+		partner_signature)
 	// payment.LoadState(
 	// 	r.server.algod_client,
 	// 	onchain_state.app_id,
