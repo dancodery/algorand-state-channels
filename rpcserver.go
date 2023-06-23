@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"strconv"
 
@@ -63,23 +64,40 @@ func (r *rpcServer) OpenChannel(ctx context.Context, in *asrpc.OpenChannelReques
 		in.FundingAmount)
 
 	// 3. send notification to partner node
-	sendRequest(in.PartnerNode.Host, P2PRequest{Command: "open_channel_request", Args: []string{strconv.FormatUint(appID, 10)}})
-
-	// 4. save payment channel on chain state
-	onchain_state := &paymentChannelOnChainState{
-		app_id:               appID,
-		alice_address:        r.server.algo_account.Address.String(),
-		bob_address:          in.PartnerNode.AlgoAddress,
-		alice_latest_balance: in.FundingAmount,
-		bob_latest_balance:   0,
-		total_deposit:        in.FundingAmount,
-		penalty_reserve:      in.PenaltyReserve,
-		dispute_window:       in.DisputeWindow,
+	partner_response, err := sendRequest(in.PartnerNode.Host, P2PRequest{Command: "open_channel_request", Args: [][]byte{[]byte(strconv.Itoa(int(appID)))}})
+	if err != nil {
+		fmt.Printf("Error sending open channel request to partner node: %v\n", err)
+		return nil, err
 	}
-	r.server.payment_channels_onchain_states[in.PartnerNode.AlgoAddress] = *onchain_state
 
-	// print payment channel states
-	fmt.Printf("Payment channel states: %v\n", r.server.payment_channels_onchain_states)
+	// 4. read partner node's response
+	switch partner_response.Message {
+	case "approve":
+		fmt.Printf("Partner node approved open channel request\n")
+
+		// save the payment channel on chain state
+		onchain_state := &paymentChannelOnChainState{
+			app_id:               appID,
+			alice_address:        r.server.algo_account.Address.String(),
+			bob_address:          in.PartnerNode.AlgoAddress,
+			alice_latest_balance: in.FundingAmount,
+			bob_latest_balance:   0,
+			total_deposit:        in.FundingAmount,
+			penalty_reserve:      in.PenaltyReserve,
+			dispute_window:       in.DisputeWindow,
+		}
+		r.server.payment_channels_onchain_states[in.PartnerNode.AlgoAddress] = *onchain_state
+
+		// print all payment channel states
+		fmt.Printf("All Payment Channels: %v\n", r.server.payment_channels_onchain_states)
+
+	case "reject":
+		fmt.Printf("Partner node rejected open channel request\n")
+		return nil, fmt.Errorf("partner node rejected open channel request")
+	default:
+		fmt.Printf("Partner node sent invalid response to open channel request\n")
+		return nil, fmt.Errorf("partner node sent invalid response to open channel request")
+	}
 
 	timestamp_end := timestamppb.Now()
 
@@ -98,7 +116,11 @@ func (r *rpcServer) Pay(ctx context.Context, in *asrpc.PayRequest) (*asrpc.PayRe
 	timestamp_start := timestamppb.Now()
 
 	// 1. get on chain state
-	onchain_state := r.server.payment_channels_onchain_states[in.PartnerNode.AlgoAddress]
+	onchain_state, ok := r.server.payment_channels_onchain_states[in.PartnerNode.AlgoAddress]
+	if !ok {
+		fmt.Printf("Error: payment channel with partner node %v does not exist\n", in.PartnerNode.AlgoAddress)
+		return nil, fmt.Errorf("payment channel with partner node %v does not exist", in.PartnerNode.AlgoAddress)
+	}
 
 	// 1. retrieve old balances
 	alice_balance := onchain_state.alice_latest_balance
@@ -108,21 +130,48 @@ func (r *rpcServer) Pay(ctx context.Context, in *asrpc.PayRequest) (*asrpc.PayRe
 	new_alice_balance := alice_balance - in.Amount
 	new_bob_balance := bob_balance + in.Amount
 
-	//
-
 	// 3. sign new state
-	payment.SignState(
-		r.server.algod_client,
+	my_signature, err := payment.SignState(
 		onchain_state.app_id,
 		r.server.algo_account,
 		new_alice_balance,
 		new_bob_balance,
 		4161)
+	if err != nil {
+		fmt.Printf("Error signing state: %v\n", err)
+	}
+
+	// 4. send new state to partner node
+	newAliceBalanceBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(newAliceBalanceBytes, new_alice_balance)
+
+	newBobBalanceBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(newBobBalanceBytes, new_bob_balance)
+
+	server_response, err := sendRequest(in.PartnerNode.Host, P2PRequest{Command: "pay_request", Args: [][]byte{
+		[]byte(r.server.algo_account.Address.String()), // 1. my address
+		newAliceBalanceBytes,                           // 2. my new balance
+		newBobBalanceBytes,                             // 3. partner's new balance
+		my_signature,                                   // 4. my signature
+	}})
+
+	if err != nil {
+		fmt.Printf("Error sending pay request to partner node: %v\n", err)
+		return nil, err
+	}
+	fmt.Printf("Partner node response: %v\n", server_response.Message)
+
+	// payment.LoadState(
+	// 	r.server.algod_client,
+	// 	onchain_state.app_id,
+	// 	r.server.algo_account,
+	// 	new_alice_balance,
+	// 	new_bob_balance,
+	// 	4161)
 
 	// 3. send new state to partner node
 
 	// send pay request to partner node
-	sendRequest(in.PartnerNode.Host, P2PRequest{Command: "pay", Args: []string{strconv.FormatUint(in.Amount, 10)}})
 
 	timestamp_end := timestamppb.Now()
 
