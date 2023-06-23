@@ -6,17 +6,25 @@ FROM golang:1.20.5-bullseye as builder
 
 ENV GODEBUG netdns=cgo
 
+WORKDIR  $GOPATH/src/github.com/dancodery/algorand-state-channels
+
+# copy mod.go and sum.go to improve caching
+COPY    go.mod go.sum ./
+
+# download dependencies
+RUN go mod download
+
 # copy only necessary files to improve caching
+COPY    cmd/ascli/ ./cmd/ascli/
 COPY    cmd/ascli/ $GOPATH/src/github.com/dancodery/algorand-state-channels/cmd/ascli/
 COPY    cmd/asd/ $GOPATH/src/github.com/dancodery/algorand-state-channels/cmd/asd/
 COPY    asrpc/ $GOPATH/src/github.com/dancodery/algorand-state-channels/asrpc/
 COPY    payment/ $GOPATH/src/github.com/dancodery/algorand-state-channels/payment/
 COPY    payment/testing/ $GOPATH/src/github.com/dancodery/algorand-state-channels/payment/testing/
-COPY    payment/build_contracts/ /build_contracts/
-COPY    go.mod go.sum asd.go server.go client.go rpcserver.go config.go $GOPATH/src/github.com/dancodery/algorand-state-channels/
+COPY    payment/build_contracts/ /smart_contracts/
+COPY    asd.go server.go client.go rpcserver.go config.go $GOPATH/src/github.com/dancodery/algorand-state-channels/
 
-WORKDIR  $GOPATH/src/github.com/dancodery/algorand-state-channels
-
+# build binaries
 RUN go build -o  /bin/ascli cmd/ascli/***
 RUN go build -o /bin/asd
 
@@ -24,6 +32,7 @@ RUN go build -o /bin/asd
 # 2. runtime stage
 FROM debian:bullseye as final
 
+# needed for docker network
 ENV GODEBUG netdns=cgo
 
 # install linux packages
@@ -34,12 +43,13 @@ RUN \
     jq \
     && rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /build_contracts
-
-COPY    --from=builder /build_contracts/ /smart_contracts/
+# copy binaries to final image
+COPY    --from=builder /smart_contracts/ /smart_contracts/
 COPY    --from=builder /bin/ascli /bin/
 COPY    --from=builder /bin/asd /bin/
 
+# expose p2p port
 EXPOSE 28547
 
+# run the server
 CMD /bin/asd
