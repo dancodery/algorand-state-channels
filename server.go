@@ -1,18 +1,21 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net"
-	"os"
+	"strconv"
 
 	"github.com/algorand/go-algorand-sdk/v2/client/v2/algod"
 	"github.com/algorand/go-algorand-sdk/v2/client/v2/common/models"
 	"github.com/algorand/go-algorand-sdk/v2/crypto"
 	"github.com/algorand/go-algorand-sdk/v2/types"
+	"github.com/dancodery/algorand-state-channels/payment"
 	"github.com/dancodery/algorand-state-channels/payment/testing"
 )
 
@@ -31,6 +34,16 @@ type paymentChannelOnChainState struct {
 }
 
 type paymentChannelOffChainState struct {
+	timestamp int64
+
+	alice_balance uint64
+	bob_balance   uint64
+
+	alice_signature []byte
+	bob_signature   []byte
+
+	algorand_port int
+	app_id        uint64
 }
 
 type server struct {
@@ -41,7 +54,7 @@ type server struct {
 	// payment_channel_app_ids              []uint64
 	// payment_channel_state_of_app_id      map[uint64]paymentChannelOnChainState
 	payment_channels_onchain_states      map[string]paymentChannelOnChainState
-	payment_cahnnels_offchain_states_log map[string]map[int64]paymentChannelOffChainState
+	payment_channels_offchain_states_log map[string]map[int64]paymentChannelOffChainState
 
 	peer_port     int
 	grpc_port     int
@@ -58,7 +71,7 @@ func initializeServer(peerPort int, grpcPort int) (*server, error) {
 		// payment_channel_app_ids:         make([]uint64, 0),
 		// payment_channel_state_of_app_id: make(map[uint64]paymentChannelOnChainState),
 		payment_channels_onchain_states:      make(map[string]paymentChannelOnChainState),
-		payment_cahnnels_offchain_states_log: make(map[string]map[int64]paymentChannelOffChainState),
+		payment_channels_offchain_states_log: make(map[string]map[int64]paymentChannelOffChainState),
 	}
 
 	s.rpcServer = newRpcServer(s)
@@ -67,6 +80,7 @@ func initializeServer(peerPort int, grpcPort int) (*server, error) {
 	s.algo_account = crypto.GenerateAccount()
 
 	fmt.Printf("My node ALGO address is: %v\n", s.algo_account.Address.String())
+	fmt.Printf("My Public key: %v\n", s.algo_account.PublicKey)
 
 	// fund account
 	testing.FundAccount(s.algod_client, s.algo_account.Address.String(), 10_000_000_000)
@@ -108,11 +122,11 @@ func (s *server) startListening() error {
 func (s *server) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
-	client_request_data := make([]byte, 1024)
+	client_request_data := make([]byte, 2<<10) // 2KB
 	n, err := conn.Read(client_request_data)
 	if err != nil {
 		log.Fatalf("Error reading: %v\n", err)
-		return
+		return // handles next connection
 	}
 
 	var client_request P2PRequest
@@ -126,30 +140,127 @@ func (s *server) handleConnection(conn net.Conn) {
 	var server_response P2PResponse
 	switch client_request.Command {
 	case "open_channel_request":
-		app_id := uint64(parseInt(client_request.Args[0]))
+		app_id, err := strconv.ParseUint(string(client_request.Args[0]), 10, 64)
+		if err != nil {
+			log.Fatalf("Error parsing app_id: %v\n", err)
+			return
+		}
 
 		// read smart contract from the blockchain for given app_id
-		app_info, err := s.algod_client.GetApplicationByID(app_id).Do(context.Background())
+		blockchain_app_info, err := s.algod_client.GetApplicationByID(app_id).Do(context.Background())
 		if err != nil {
 			log.Fatalf("Error reading smart contract from blockchain: %v\n", err)
 			return
 		}
 
-		// TODO: verify smart contract hash with local copy
+		// check if smart contract is valid
+		smart_contract_valid := s.doOpenChannelSecurityChecks(blockchain_app_info)
+		if !smart_contract_valid {
+			server_response.Message = "reject"
+			break
+		}
 
-		// save new payment channel on global state variables
-		s.savePaymentChannelOnChainState(app_id, app_info.Params.GlobalState)
+		// save the new payment channel state
+		s.savePaymentChannelOnChainState(app_id, blockchain_app_info.Params.GlobalState)
 
-		fmt.Printf("I was notified that payment channel with app_id %d was opened\n", app_id)
+		fmt.Printf("The payment channel with app_id %d was opened successfully.\n", app_id)
+
 		// print s.payment_channels_onchain_states
 		fmt.Println("payment_channels_onchain_states: ", s.payment_channels_onchain_states)
-
 		server_response.Message = "approve"
+
+	case "pay_request":
+		alice_address := string(client_request.Args[0])
+		alice_new_balance := binary.BigEndian.Uint64(client_request.Args[1])
+		bob_new_balance := binary.BigEndian.Uint64(client_request.Args[2])
+
+		fmt.Println("Received alice signature: ", client_request.Args[3])
+		channel_partner_signature := client_request.Args[3]
+
+		// 1. load latest state
+		onchain_state, ok := s.payment_channels_onchain_states[alice_address]
+		if !ok {
+			fmt.Printf("Error: payment channel with address %s does not exist\n", alice_address)
+			server_response.Message = "reject"
+			break
+		}
+		last_alice_balance := onchain_state.alice_latest_balance
+		last_bob_balance := onchain_state.bob_latest_balance
+
+		// 2. verify that all new parameters are beneficial for me
+		alice_balance_diff := int64(alice_new_balance) - int64(last_alice_balance)
+		bob_balance_diff := int64(bob_new_balance) - int64(last_bob_balance)
+
+		if !(alice_balance_diff < 0 && // alice new balance must be smaller than old balance
+			bob_balance_diff == (-1)*alice_balance_diff && // what bob gains, alice loses
+			alice_new_balance >= onchain_state.penalty_reserve) { // alice must have enough funds to pay the penalty
+
+			fmt.Println("Error: invalid new balances")
+			server_response.Message = "reject"
+			break
+		}
+
+		// 3. verify channel partner signature
+		channel_partner_signature_correct := payment.VerifyState(
+			onchain_state.app_id,
+			alice_new_balance,
+			bob_new_balance,
+			4161,
+			channel_partner_signature,
+			alice_address,
+		)
+		if !channel_partner_signature_correct {
+			fmt.Println("Error: invalid channel partner signature")
+			server_response.Message = "reject"
+			break
+		}
+
+		// 4. sign the state as well
+		my_signature, err := payment.SignState(
+			onchain_state.app_id,
+			s.algo_account,
+			alice_new_balance,
+			bob_new_balance,
+			4161,
+		)
+		if err != nil {
+			log.Fatalf("Error signing state: %v\n", err)
+			return
+		}
+
+		fmt.Println("My signature for the requested state: ", my_signature)
+
+		// 5. save new state
+		var timestamp int64 = 1685318789
+
+		off_chain_state := &paymentChannelOffChainState{
+			timestamp: timestamp,
+
+			alice_balance: alice_new_balance,
+			bob_balance:   bob_new_balance,
+
+			alice_signature: channel_partner_signature,
+			bob_signature:   my_signature,
+
+			algorand_port: 4161,
+			app_id:        onchain_state.app_id,
+		}
+
+		if s.payment_channels_offchain_states_log[alice_address] == nil {
+			s.payment_channels_offchain_states_log[alice_address] = make(map[int64]paymentChannelOffChainState)
+		}
+		s.payment_channels_offchain_states_log[alice_address][timestamp] = *off_chain_state
+
+		// 6. send response to client
+		server_response.Message = "approve"
+		server_response.Data = [][]byte{
+			my_signature,
+		}
+
 	case "close_channel":
 		fmt.Println("close_channel")
-	case "pay":
-		fmt.Println("received payment")
-		fmt.Printf("I received %d ALGO from my partner\n", parseInt(client_request.Args[0]))
+	case "pay_response":
+		fmt.Println("pay_response")
 	default:
 		fmt.Println("Received unknown command")
 	}
@@ -176,6 +287,92 @@ func parseInt(s string) int {
 		log.Fatalf("Error parsing int: %v\n", err)
 	}
 	return i
+}
+
+func (s *server) doOpenChannelSecurityChecks(blockchain_app_info models.Application) bool {
+	// 1. verify smart contracts with local copy
+	expected_approval_program, expected_clearstate_program := payment.CompilePaymentPrograms(s.algod_client)
+
+	requested_approval_program := blockchain_app_info.Params.ApprovalProgram
+	requested_clearstate_program := blockchain_app_info.Params.ClearStateProgram
+
+	smart_contracs_equal := bytes.Equal(requested_approval_program, expected_approval_program) &&
+		bytes.Equal(requested_clearstate_program, expected_clearstate_program)
+	if !smart_contracs_equal {
+		return false
+	}
+
+	// 2. verify that my address is bob_address
+	my_address := s.algo_account.Address.String()
+	bob_address_value := GetValueOfGlobalState(blockchain_app_info.Params.GlobalState, "bob_address")
+	if bob_address_value == nil {
+		fmt.Println("bob_address not found in global state")
+		return false
+	}
+	bob_address, err := types.EncodeAddress(bob_address_value)
+	if err != nil {
+		log.Fatalf("Error encoding address: %v\n", err)
+	}
+	algo_addresses_equal := my_address == bob_address
+	if !algo_addresses_equal {
+		return false
+	}
+
+	// 3. verify that dispute_window is above min_dispute_window and below max_dispute_window
+	dispute_window_value := GetValueOfGlobalState(blockchain_app_info.Params.GlobalState, "dispute_window")
+	if dispute_window_value == nil {
+		fmt.Println("dispute_window not found in global state")
+		return false
+	}
+	dispute_window := parseInt(string(dispute_window_value))
+	min_dispute_window := 500
+	max_dispute_window := 10_000
+	dispute_window_check := dispute_window >= min_dispute_window && dispute_window <= max_dispute_window
+	if !dispute_window_check {
+		return false
+	}
+
+	// 4. verify that penalty is above min_threshold and below max_threshold
+	penalty_value := GetValueOfGlobalState(blockchain_app_info.Params.GlobalState, "penalty_reserve")
+	if penalty_value == nil {
+		fmt.Println("penalty_reserve not found in global state")
+		return false
+	}
+	penalty_reserve := parseInt(string(penalty_value))
+	min_penalty_reserve := 10_000
+	max_penalty_reserve := 100_000_000
+	penalty_reserve_check := penalty_reserve >= min_penalty_reserve && penalty_reserve <= max_penalty_reserve
+	if !penalty_reserve_check {
+		return false
+	}
+
+	return true
+}
+
+func GetValueOfGlobalState(global_state []models.TealKeyValue, key string) []byte {
+	for _, teal_key_value := range global_state {
+		// decode base64 for teal_key_value.Key
+		decoded_key, err := base64.StdEncoding.DecodeString(teal_key_value.Key)
+		if err != nil {
+			log.Fatalf("Error decoding base64: %v\n", err)
+		}
+
+		if string(decoded_key) == key {
+			switch teal_key_value.Value.Type {
+			case 1: // it's bytes, probably an algo address
+				decoded_value, err := base64.StdEncoding.DecodeString(teal_key_value.Value.Bytes)
+				if err != nil {
+					log.Fatalf("Error decoding base64: %v\n", err)
+				}
+				return decoded_value
+			case 2: // it's uint64
+				return []byte(strconv.FormatUint(teal_key_value.Value.Uint, 10))
+			default:
+				log.Fatalf("Unknown type: %v\n", teal_key_value.Value.Type)
+			}
+		}
+	}
+	return nil
 }
 
 func (s *server) savePaymentChannelOnChainState(appID uint64, global_state []models.TealKeyValue) {
@@ -223,12 +420,6 @@ func (s *server) savePaymentChannelOnChainState(appID uint64, global_state []mod
 			}
 		}
 	}
-	// check if bob_address is really my address
-	if s.algo_account.Address.String() != onchain_state.bob_address {
-		fmt.Fprintf(os.Stdout, "I am not involved in this payment channel contract!\n")
-		return
-	}
-
 	// save onchain_state in map
 	s.payment_channels_onchain_states[onchain_state.alice_address] = *onchain_state
 }
