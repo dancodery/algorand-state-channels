@@ -81,7 +81,7 @@ func openChannel(ctx *cli.Context) error {
 		return err
 	}
 
-	fmt.Println(openChannelResponse)
+	fmt.Println("Response from gRPC server: ", openChannelResponse)
 
 	return nil
 }
