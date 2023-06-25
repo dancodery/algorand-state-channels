@@ -1,6 +1,7 @@
 import threading
 import subprocess
 from algosdk.logic import get_application_address
+from algosdk import mnemonic, account
 
 from payment.operations import (
 	createPaymentApp, 
@@ -18,9 +19,13 @@ from payment.testing.resources import (
 
 
 if __name__ == "__main__":	
+	# alice_seed_phrase = "auction palm thumb shuffle aim fade cover glass fire spawn course harbor moon decline shed shop envelope virtual visa attitude hand december portion abstract labor"
+	# bob_seed_phrase = "prize struggle destroy tray harvest wear century length thought diagram rubber page bridge weasel same ocean team index skin volume witness record cinnamon able machine"
 	client = getAlgodClient()
 
 	print("Generating temporary accounts...")
+	# alice = getTemporaryAccount(client, seed_phrase=alice_seed_phrase)
+	# bob = getTemporaryAccount(client, seed_phrase=bob_seed_phrase)
 	alice = getTemporaryAccount(client)
 	bob = getTemporaryAccount(client)
 
@@ -102,11 +107,8 @@ if __name__ == "__main__":
 	)
 	print(f"Alice's balance is now {aliceBalance} microAlgos and Bob's balance is now {bobBalance} microAlgos\n")
 
-
 	print("Alice signs state data...")
-	signState(client=client, appID=appID, alice=alice, bob=bob, alice_balance=1_999_999_900, bob_balance=100)
-
-
+	signState(client=client, app_id=appID, alice=alice, bob=bob, alice_balance=1_999_999_900, bob_balance=100)
 
 	alice_thread = threading.Thread(target=payment_node_process, kwargs={"participant_name": "Alice", "is_creator": True})
 	alice_thread.start()
