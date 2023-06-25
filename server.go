@@ -9,11 +9,13 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"strconv"
 
 	"github.com/algorand/go-algorand-sdk/v2/client/v2/algod"
 	"github.com/algorand/go-algorand-sdk/v2/client/v2/common/models"
 	"github.com/algorand/go-algorand-sdk/v2/crypto"
+	"github.com/algorand/go-algorand-sdk/v2/mnemonic"
 	"github.com/algorand/go-algorand-sdk/v2/types"
 	"github.com/dancodery/algorand-state-channels/payment"
 	"github.com/dancodery/algorand-state-channels/payment/testing"
@@ -68,16 +70,30 @@ func initializeServer(peerPort int, grpcPort int) (*server, error) {
 		peer_port: peerPort,
 		grpc_port: grpcPort,
 
-		// payment_channel_app_ids:         make([]uint64, 0),
-		// payment_channel_state_of_app_id: make(map[uint64]paymentChannelOnChainState),
 		payment_channels_onchain_states:      make(map[string]paymentChannelOnChainState),
 		payment_channels_offchain_states_log: make(map[string]map[int64]paymentChannelOffChainState),
 	}
 
 	s.rpcServer = newRpcServer(s)
-
 	s.algod_client = testing.GetAlgodClient()
-	s.algo_account = crypto.GenerateAccount()
+
+	// new: generate account from seed
+	seed_phrase := os.Getenv("SEED_PHRASE")
+
+	if seed_phrase == "" {
+		s.algo_account = crypto.GenerateAccount()
+	} else {
+		private_key, err := mnemonic.ToPrivateKey(seed_phrase)
+		if err != nil {
+			log.Fatalf("failed to generate account from seed: %v\n", err)
+			return nil, err
+		}
+		s.algo_account, err = crypto.AccountFromPrivateKey(private_key)
+		if err != nil {
+			log.Fatalf("failed to generate account from seed: %v\n", err)
+			return nil, err
+		}
+	}
 
 	fmt.Printf("My node ALGO address is: %v\n", s.algo_account.Address.String())
 	fmt.Printf("My Public key: %v\n", s.algo_account.PublicKey)
@@ -423,8 +439,3 @@ func (s *server) savePaymentChannelOnChainState(appID uint64, global_state []mod
 	// save onchain_state in map
 	s.payment_channels_onchain_states[onchain_state.alice_address] = *onchain_state
 }
-
-// func (s *server) stop() error {
-// 	fmt.Println("stop")
-// 	return nil
-// }
