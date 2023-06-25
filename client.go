@@ -33,9 +33,6 @@ func sendRequest(recipient_ip string, request P2PRequest) (response P2PResponse,
 		return P2PResponse{}, err
 	}
 
-	// print json_request to stdout
-	fmt.Fprintf(os.Stdout, string(json_request)+"\n")
-
 	// send request to peer server
 	_, err = conn.Write(json_request)
 	if err != nil {
