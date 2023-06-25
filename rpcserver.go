@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/dancodery/algorand-state-channels/asrpc"
 	"github.com/dancodery/algorand-state-channels/payment"
@@ -73,24 +74,24 @@ func (r *rpcServer) OpenChannel(ctx context.Context, in *asrpc.OpenChannelReques
 	// 4. read partner node's response
 	switch partner_response.Message {
 	case "approve":
-		fmt.Printf("Partner node approved open channel request\n")
-
 		// save the payment channel on chain state
 		onchain_state := &paymentChannelOnChainState{
-			app_id:               appID,
-			alice_address:        r.server.algo_account.Address.String(),
-			bob_address:          in.PartnerNode.AlgoAddress,
+			app_id: appID,
+
+			alice_address: r.server.algo_account.Address.String(),
+			bob_address:   in.PartnerNode.AlgoAddress,
+
 			alice_latest_balance: in.FundingAmount,
 			bob_latest_balance:   0,
-			total_deposit:        in.FundingAmount,
-			penalty_reserve:      in.PenaltyReserve,
-			dispute_window:       in.DisputeWindow,
+
+			total_deposit:   in.FundingAmount,
+			penalty_reserve: in.PenaltyReserve,
+			dispute_window:  in.DisputeWindow,
 		}
 		r.server.payment_channels_onchain_states[in.PartnerNode.AlgoAddress] = *onchain_state
 
 		// print all payment channel states
-		fmt.Printf("All Payment Channels: %v\n", r.server.payment_channels_onchain_states)
-
+		fmt.Printf("All Current Payment Channel States: %v\n", r.server.payment_channels_onchain_states)
 	case "reject":
 		fmt.Printf("Partner node rejected open channel request\n")
 		return nil, fmt.Errorf("partner node rejected open channel request")
@@ -131,12 +132,15 @@ func (r *rpcServer) Pay(ctx context.Context, in *asrpc.PayRequest) (*asrpc.PayRe
 	new_bob_balance := bob_balance + in.Amount
 
 	// 3. sign new state
+	timestamp_now := time.Now().Unix()
+
 	my_signature, err := payment.SignState(
 		onchain_state.app_id,
 		r.server.algo_account,
 		new_alice_balance,
 		new_bob_balance,
-		4161)
+		4161,
+		timestamp_now)
 	if err != nil {
 		fmt.Printf("Error signing state: %v\n", err)
 	}
@@ -148,11 +152,15 @@ func (r *rpcServer) Pay(ctx context.Context, in *asrpc.PayRequest) (*asrpc.PayRe
 	newBobBalanceBytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(newBobBalanceBytes, new_bob_balance)
 
+	timestampBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(timestampBytes, uint64(timestamp_now))
+
 	server_response, err := sendRequest(in.PartnerNode.Host, P2PRequest{Command: "pay_request", Args: [][]byte{
 		[]byte(r.server.algo_account.Address.String()), // 1. my address
 		newAliceBalanceBytes,                           // 2. my new balance
 		newBobBalanceBytes,                             // 3. partner's new balance
-		my_signature,                                   // 4. my signature
+		timestampBytes,                                 // 4. timestamp
+		my_signature,                                   // 5. my signature
 	}})
 	if err != nil {
 		fmt.Printf("Error sending pay request to partner node: %v\n", err)
@@ -175,17 +183,16 @@ func (r *rpcServer) Pay(ctx context.Context, in *asrpc.PayRequest) (*asrpc.PayRe
 		new_bob_balance,
 		4161,
 		partner_signature,
-		in.PartnerNode.AlgoAddress)
+		in.PartnerNode.AlgoAddress,
+		timestamp_now)
 	if !partner_verified {
 		fmt.Printf("Partner node's signature is invalid\n")
 		return nil, fmt.Errorf("partner node's signature is invalid")
 	}
 
 	// 7. save new state
-	var timestamp int64 = 1685318789
-
 	off_chain_state := &paymentChannelOffChainState{
-		timestamp: timestamp,
+		timestamp: timestamp_now,
 
 		alice_balance: new_alice_balance,
 		bob_balance:   new_bob_balance,
@@ -200,18 +207,21 @@ func (r *rpcServer) Pay(ctx context.Context, in *asrpc.PayRequest) (*asrpc.PayRe
 	if r.server.payment_channels_offchain_states_log[in.PartnerNode.AlgoAddress] == nil {
 		r.server.payment_channels_offchain_states_log[in.PartnerNode.AlgoAddress] = make(map[int64]paymentChannelOffChainState)
 	}
-	r.server.payment_channels_offchain_states_log[in.PartnerNode.AlgoAddress][timestamp] = *off_chain_state
+	r.server.payment_channels_offchain_states_log[in.PartnerNode.AlgoAddress][timestamp_now] = *off_chain_state
 
 	// 8. update on chain state
-	payment.LoadState(
-		r.server.algod_client,
-		onchain_state.app_id,
-		r.server.algo_account,
-		new_alice_balance,
-		new_bob_balance,
-		4161,
-		my_signature,
-		partner_signature)
+	fmt.Printf("8. Updating on chain state\n")
+
+	// payment.LoadState(
+	// 	r.server.algod_client,
+	// 	onchain_state.app_id,
+	// 	r.server.algo_account,
+	// 	new_alice_balance,
+	// 	new_bob_balance,
+	// 	4161,
+	// 	my_signature,
+	// 	partner_signature,
+	// )
 	// payment.LoadState(
 	// 	r.server.algod_client,
 	// 	onchain_state.app_id,
