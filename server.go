@@ -189,9 +189,10 @@ func (s *server) handleConnection(conn net.Conn) {
 		alice_address := string(client_request.Args[0])
 		alice_new_balance := binary.BigEndian.Uint64(client_request.Args[1])
 		bob_new_balance := binary.BigEndian.Uint64(client_request.Args[2])
+		timestamp := int64(binary.BigEndian.Uint64(client_request.Args[3]))
 
-		fmt.Println("Received alice signature: ", client_request.Args[3])
-		channel_partner_signature := client_request.Args[3]
+		channel_partner_signature := client_request.Args[4]
+		fmt.Println("Received alice signature: ", channel_partner_signature)
 
 		// 1. load latest state
 		onchain_state, ok := s.payment_channels_onchain_states[alice_address]
@@ -224,6 +225,7 @@ func (s *server) handleConnection(conn net.Conn) {
 			4161,
 			channel_partner_signature,
 			alice_address,
+			timestamp,
 		)
 		if !channel_partner_signature_correct {
 			fmt.Println("Error: invalid channel partner signature")
@@ -238,6 +240,7 @@ func (s *server) handleConnection(conn net.Conn) {
 			alice_new_balance,
 			bob_new_balance,
 			4161,
+			timestamp,
 		)
 		if err != nil {
 			log.Fatalf("Error signing state: %v\n", err)
@@ -247,7 +250,6 @@ func (s *server) handleConnection(conn net.Conn) {
 		fmt.Println("My signature for the requested state: ", my_signature)
 
 		// 5. save new state
-		var timestamp int64 = 1685318789
 
 		off_chain_state := &paymentChannelOffChainState{
 			timestamp: timestamp,
