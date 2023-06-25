@@ -6,11 +6,13 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/algorand/go-algorand-sdk/v2/client/v2/algod"
 	"github.com/algorand/go-algorand-sdk/v2/client/v2/common/models"
@@ -189,35 +191,51 @@ func (s *server) handleConnection(conn net.Conn) {
 		alice_address := string(client_request.Args[0])
 		alice_new_balance := binary.BigEndian.Uint64(client_request.Args[1])
 		bob_new_balance := binary.BigEndian.Uint64(client_request.Args[2])
-		timestamp := int64(binary.BigEndian.Uint64(client_request.Args[3]))
+		new_timestamp := int64(binary.BigEndian.Uint64(client_request.Args[3]))
 
 		channel_partner_signature := client_request.Args[4]
 		fmt.Println("Received alice signature: ", channel_partner_signature)
 
-		// 1. load latest state
+		// 1. load onchain state
 		onchain_state, ok := s.payment_channels_onchain_states[alice_address]
 		if !ok {
 			fmt.Printf("Error: payment channel with address %s does not exist\n", alice_address)
 			server_response.Message = "reject"
 			break
 		}
-		last_alice_balance := onchain_state.alice_latest_balance
-		last_bob_balance := onchain_state.bob_latest_balance
 
-		// 2. verify that all new parameters are beneficial for me
+		// 2. load latest off chain state
+		payment_log, ok := s.payment_channels_offchain_states_log[alice_address]
+		if !ok {
+			fmt.Printf("Error: payment channel with address %s does not exist\n", alice_address)
+			server_response.Message = "reject"
+			break
+		}
+		latestOffChainState, err := getLatestOffChainState(payment_log)
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+			server_response.Message = "reject"
+			break
+		}
+		last_alice_balance := latestOffChainState.alice_balance
+		last_bob_balance := latestOffChainState.bob_balance
+		last_timestamp := latestOffChainState.timestamp
+
+		// 3. verify that all new parameters are beneficial for me
 		alice_balance_diff := int64(alice_new_balance) - int64(last_alice_balance)
 		bob_balance_diff := int64(bob_new_balance) - int64(last_bob_balance)
 
 		if !(alice_balance_diff < 0 && // alice new balance must be smaller than old balance
 			bob_balance_diff == (-1)*alice_balance_diff && // what bob gains, alice loses
-			alice_new_balance >= onchain_state.penalty_reserve) { // alice must have enough funds to pay the penalty
+			alice_new_balance >= onchain_state.penalty_reserve && // alice must have enough funds to pay the penalty
+			last_timestamp < new_timestamp) { // timestamp must be increasing
 
 			fmt.Println("Error: invalid new balances")
 			server_response.Message = "reject"
 			break
 		}
 
-		// 3. verify channel partner signature
+		// 4. verify channel partner signature
 		channel_partner_signature_correct := payment.VerifyState(
 			onchain_state.app_id,
 			alice_new_balance,
@@ -225,7 +243,7 @@ func (s *server) handleConnection(conn net.Conn) {
 			4161,
 			channel_partner_signature,
 			alice_address,
-			timestamp,
+			new_timestamp,
 		)
 		if !channel_partner_signature_correct {
 			fmt.Println("Error: invalid channel partner signature")
@@ -233,14 +251,14 @@ func (s *server) handleConnection(conn net.Conn) {
 			break
 		}
 
-		// 4. sign the state as well
+		// 5. sign the state as well
 		my_signature, err := payment.SignState(
 			onchain_state.app_id,
 			s.algo_account,
 			alice_new_balance,
 			bob_new_balance,
 			4161,
-			timestamp,
+			new_timestamp,
 		)
 		if err != nil {
 			log.Fatalf("Error signing state: %v\n", err)
@@ -249,10 +267,10 @@ func (s *server) handleConnection(conn net.Conn) {
 
 		fmt.Println("My signature for the requested state: ", my_signature)
 
-		// 5. save new state
+		// 6. save new state
 
 		off_chain_state := &paymentChannelOffChainState{
-			timestamp: timestamp,
+			timestamp: new_timestamp,
 
 			alice_balance: alice_new_balance,
 			bob_balance:   bob_new_balance,
@@ -267,9 +285,9 @@ func (s *server) handleConnection(conn net.Conn) {
 		if s.payment_channels_offchain_states_log[alice_address] == nil {
 			s.payment_channels_offchain_states_log[alice_address] = make(map[int64]paymentChannelOffChainState)
 		}
-		s.payment_channels_offchain_states_log[alice_address][timestamp] = *off_chain_state
+		s.payment_channels_offchain_states_log[alice_address][new_timestamp] = *off_chain_state
 
-		// 6. send response to client
+		// 7. send response to client
 		server_response.Message = "approve"
 		server_response.Data = [][]byte{
 			my_signature,
@@ -296,6 +314,24 @@ func (s *server) handleConnection(conn net.Conn) {
 		log.Fatalf("Error writing: %v\n", err)
 		return
 	}
+}
+
+func getLatestOffChainState(payment_log map[int64]paymentChannelOffChainState) (*paymentChannelOffChainState, error) {
+	latest_timestamp := int64(0)
+	var latest_offchain_state paymentChannelOffChainState
+
+	for timestamp, offchain_state := range payment_log {
+		if timestamp > latest_timestamp {
+			latest_timestamp = timestamp
+			latest_offchain_state = offchain_state
+		}
+	}
+
+	if latest_timestamp == 0 {
+		return nil, errors.New("no off chain state found")
+	}
+
+	return &latest_offchain_state, nil
 }
 
 func parseInt(s string) int {
@@ -440,4 +476,20 @@ func (s *server) savePaymentChannelOnChainState(appID uint64, global_state []mod
 	}
 	// save onchain_state in map
 	s.payment_channels_onchain_states[onchain_state.alice_address] = *onchain_state
+
+	// save offchain_state in log
+	off_chain_state := &paymentChannelOffChainState{
+		timestamp: time.Now().Unix(),
+
+		alice_balance: onchain_state.alice_latest_balance,
+		bob_balance:   onchain_state.bob_latest_balance,
+
+		algorand_port: 4161,
+		app_id:        onchain_state.app_id,
+	}
+
+	if s.payment_channels_offchain_states_log[onchain_state.alice_address] == nil {
+		s.payment_channels_offchain_states_log[onchain_state.alice_address] = make(map[int64]paymentChannelOffChainState)
+	}
+	s.payment_channels_offchain_states_log[onchain_state.alice_address][off_chain_state.timestamp] = *off_chain_state
 }
