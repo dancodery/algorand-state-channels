@@ -22,9 +22,6 @@ def approval_program():
 
 	penalty_reserve = Bytes("penalty_reserve")					# uint: used to penalize expired transaction commitments
 	dispute_window = Bytes("dispute_window")					# uint: window in which a dispute can be raised
-	
-	# for debugging purposes
-	# signed = Bytes("signed")        	# uint: used to check if Alice and Bob have signed the transaction
 
 	# closes the channel and pays out the funds to the respective parties
 	@Subroutine(TealType.none)
@@ -82,7 +79,6 @@ def approval_program():
 		# The arguments contain bob address, and penalty reserve
 		Assert(Txn.application_args.length() == Int(3)),
 		# Set alice to sender of initial tx
-		# App.globalPut(app_id, Global.current_application_id()),
 		App.globalPut(app_id, Global.current_application_id()),
 		App.globalPut(alice_address, Txn.sender()),
 		App.globalPut(bob_address, Txn.application_args[0]),
