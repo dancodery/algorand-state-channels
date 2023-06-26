@@ -23,14 +23,15 @@ import (
 	"github.com/dancodery/algorand-state-channels/payment/testing"
 )
 
-type paymentChannelOnChainState struct {
-	app_id uint64
+type paymentChannelInfo struct {
+	app_id     uint64
+	partner_ip string
 
 	alice_address string
 	bob_address   string
 
-	alice_latest_balance uint64
-	bob_latest_balance   uint64
+	alice_onchain_balance uint64
+	bob_onchain_balance   uint64
 
 	total_deposit   uint64
 	penalty_reserve uint64
@@ -57,7 +58,7 @@ type server struct {
 
 	// payment_channel_app_ids              []uint64
 	// payment_channel_state_of_app_id      map[uint64]paymentChannelOnChainState
-	payment_channels_onchain_states      map[string]paymentChannelOnChainState
+	payment_channels_onchain_states      map[string]paymentChannelInfo
 	payment_channels_offchain_states_log map[string]map[int64]paymentChannelOffChainState
 
 	peer_port     int
@@ -72,7 +73,7 @@ func initializeServer(peerPort int, grpcPort int) (*server, error) {
 		peer_port: peerPort,
 		grpc_port: grpcPort,
 
-		payment_channels_onchain_states:      make(map[string]paymentChannelOnChainState),
+		payment_channels_onchain_states:      make(map[string]paymentChannelInfo),
 		payment_channels_offchain_states_log: make(map[string]map[int64]paymentChannelOffChainState),
 	}
 
@@ -98,7 +99,6 @@ func initializeServer(peerPort int, grpcPort int) (*server, error) {
 	}
 
 	fmt.Printf("My node ALGO address is: %v\n", s.algo_account.Address.String())
-	fmt.Printf("My Public key: %v\n", s.algo_account.PublicKey)
 
 	// fund account
 	testing.FundAccount(s.algod_client, s.algo_account.Address.String(), 10_000_000_000)
@@ -432,7 +432,7 @@ func GetValueOfGlobalState(global_state []models.TealKeyValue, key string) []byt
 }
 
 func (s *server) savePaymentChannelOnChainState(appID uint64, global_state []models.TealKeyValue) {
-	onchain_state := &paymentChannelOnChainState{
+	onchain_state := &paymentChannelInfo{
 		app_id: appID,
 	}
 
@@ -470,9 +470,9 @@ func (s *server) savePaymentChannelOnChainState(appID uint64, global_state []mod
 			case "penalty_reserve":
 				onchain_state.penalty_reserve = teal_key_value.Value.Uint
 			case "latest_alice_balance":
-				onchain_state.alice_latest_balance = teal_key_value.Value.Uint
+				onchain_state.alice_onchain_balance = teal_key_value.Value.Uint
 			case "latest_bob_balance":
-				onchain_state.bob_latest_balance = teal_key_value.Value.Uint
+				onchain_state.bob_onchain_balance = teal_key_value.Value.Uint
 			}
 		}
 	}
@@ -483,8 +483,8 @@ func (s *server) savePaymentChannelOnChainState(appID uint64, global_state []mod
 	off_chain_state := &paymentChannelOffChainState{
 		timestamp: time.Now().UnixNano(),
 
-		alice_balance: onchain_state.alice_latest_balance,
-		bob_balance:   onchain_state.bob_latest_balance,
+		alice_balance: onchain_state.alice_onchain_balance,
+		bob_balance:   onchain_state.bob_onchain_balance,
 
 		algorand_port: 4161,
 		app_id:        onchain_state.app_id,

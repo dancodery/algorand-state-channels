@@ -83,10 +83,10 @@ echo "Bob's address: ${bob_address}"
 # Alice: open a channel with Bob
 echo 
 echo "Alice opening a channel with Bob..."
-run-in-node asc-alice "ascli openchannel --partner_ip=asc-bob --partner_address=${bob_address} --funding_amount=10_000_000 --penalty_reserve=100_000 --dispute_window=1000"
+run-in-node asc-alice "ascli openchannel --partner_ip=asc-bob --partner_address=${bob_address} --funding_amount=2_000_000_000 --penalty_reserve=100_000 --dispute_window=1000"
 
 # Alice pays Bob 1_000_000 microAlgos
 echo
 echo "Alice paying Bob 1_000_000 microAlgos..."
-run-in-node asc-alice "ascli pay  --partner_ip=asc-bob --partner_address=${bob_address} --amount=1_000_000"
+run-in-node asc-alice "ascli pay --partner_address=${bob_address} --amount=100"
 

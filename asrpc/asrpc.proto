@@ -42,7 +42,7 @@ message OpenChannelResponse {
 }
 
 message PayRequest {
-    StateChannelNodeAddress partner_node = 1;
+    string algo_address = 1;
     uint64 amount = 2;
 }
 

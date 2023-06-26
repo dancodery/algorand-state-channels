@@ -75,14 +75,15 @@ func (r *rpcServer) OpenChannel(ctx context.Context, in *asrpc.OpenChannelReques
 	switch partner_response.Message {
 	case "approve":
 		// save the payment channel on chain state
-		onchain_state := &paymentChannelOnChainState{
-			app_id: appID,
+		onchain_state := &paymentChannelInfo{
+			app_id:     appID,
+			partner_ip: in.PartnerNode.Host,
 
 			alice_address: r.server.algo_account.Address.String(),
 			bob_address:   in.PartnerNode.AlgoAddress,
 
-			alice_latest_balance: in.FundingAmount,
-			bob_latest_balance:   0,
+			alice_onchain_balance: in.FundingAmount,
+			bob_onchain_balance:   0,
 
 			total_deposit:   in.FundingAmount,
 			penalty_reserve: in.PenaltyReserve,
@@ -117,21 +118,21 @@ func (r *rpcServer) Pay(ctx context.Context, in *asrpc.PayRequest) (*asrpc.PayRe
 	timestamp_start := timestamppb.Now()
 
 	// 1. get on chain state
-	onchain_state, ok := r.server.payment_channels_onchain_states[in.PartnerNode.AlgoAddress]
+	onchain_state, ok := r.server.payment_channels_onchain_states[in.AlgoAddress]
 	if !ok {
-		fmt.Printf("Error: payment channel with partner node %v does not exist\n", in.PartnerNode.AlgoAddress)
-		return nil, fmt.Errorf("payment channel with partner node %v does not exist", in.PartnerNode.AlgoAddress)
+		fmt.Printf("Error: payment channel with partner node %v does not exist\n", in.AlgoAddress)
+		return nil, fmt.Errorf("payment channel with partner node %v does not exist", in.AlgoAddress)
 	}
 
-	// 1. retrieve old balances
-	alice_balance := onchain_state.alice_latest_balance
-	bob_balance := onchain_state.bob_latest_balance
+	// 2. retrieve old balances
+	alice_balance := onchain_state.alice_onchain_balance
+	bob_balance := onchain_state.bob_onchain_balance
 
-	// 2. calculate new balances
+	// 3. calculate new balances
 	new_alice_balance := alice_balance - in.Amount
 	new_bob_balance := bob_balance + in.Amount
 
-	// 3. sign new state
+	// 4. sign new state
 	timestamp_now := time.Now().UnixNano()
 
 	my_signature, err := payment.SignState(
@@ -145,7 +146,7 @@ func (r *rpcServer) Pay(ctx context.Context, in *asrpc.PayRequest) (*asrpc.PayRe
 		fmt.Printf("Error signing state: %v\n", err)
 	}
 
-	// 4. send new state to partner node
+	// 5. send new state to partner node
 	newAliceBalanceBytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(newAliceBalanceBytes, new_alice_balance)
 
@@ -155,7 +156,7 @@ func (r *rpcServer) Pay(ctx context.Context, in *asrpc.PayRequest) (*asrpc.PayRe
 	timestampBytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(timestampBytes, uint64(timestamp_now))
 
-	server_response, err := sendRequest(in.PartnerNode.Host, P2PRequest{Command: "pay_request", Args: [][]byte{
+	server_response, err := sendRequest(onchain_state.partner_ip, P2PRequest{Command: "pay_request", Args: [][]byte{
 		[]byte(r.server.algo_account.Address.String()), // 1. my address
 		newAliceBalanceBytes,                           // 2. my new balance
 		newBobBalanceBytes,                             // 3. partner's new balance
@@ -167,14 +168,14 @@ func (r *rpcServer) Pay(ctx context.Context, in *asrpc.PayRequest) (*asrpc.PayRe
 		return nil, err
 	}
 
-	// 5. read partner node's response
+	// 6. read partner node's response
 	fmt.Printf("Partner node response: %v\n", server_response.Message)
 	if server_response.Message != "approve" {
 		fmt.Printf("Partner node rejected pay request\n")
 		return nil, fmt.Errorf("partner node rejected pay request")
 	}
 
-	// 6. verify partner node's signature
+	// 7. verify partner node's signature
 	partner_signature := server_response.Data[0]
 
 	partner_verified := payment.VerifyState(
@@ -183,14 +184,14 @@ func (r *rpcServer) Pay(ctx context.Context, in *asrpc.PayRequest) (*asrpc.PayRe
 		new_bob_balance,
 		4161,
 		partner_signature,
-		in.PartnerNode.AlgoAddress,
+		in.AlgoAddress,
 		timestamp_now)
 	if !partner_verified {
 		fmt.Printf("Partner node's signature is invalid\n")
 		return nil, fmt.Errorf("partner node's signature is invalid")
 	}
 
-	// 7. save new state
+	// 8. save new state
 	off_chain_state := &paymentChannelOffChainState{
 		timestamp: timestamp_now,
 
@@ -204,35 +205,14 @@ func (r *rpcServer) Pay(ctx context.Context, in *asrpc.PayRequest) (*asrpc.PayRe
 		app_id:        onchain_state.app_id,
 	}
 
-	if r.server.payment_channels_offchain_states_log[in.PartnerNode.AlgoAddress] == nil {
-		r.server.payment_channels_offchain_states_log[in.PartnerNode.AlgoAddress] = make(map[int64]paymentChannelOffChainState)
+	if r.server.payment_channels_offchain_states_log[in.AlgoAddress] == nil {
+		r.server.payment_channels_offchain_states_log[in.AlgoAddress] = make(map[int64]paymentChannelOffChainState)
 	}
-	r.server.payment_channels_offchain_states_log[in.PartnerNode.AlgoAddress][timestamp_now] = *off_chain_state
+	r.server.payment_channels_offchain_states_log[in.AlgoAddress][timestamp_now] = *off_chain_state
 
-	// 8. update on chain state
-	fmt.Printf("8. Updating on chain state\n")
-
-	// payment.LoadState(
-	// 	r.server.algod_client,
-	// 	onchain_state.app_id,
-	// 	r.server.algo_account,
-	// 	new_alice_balance,
-	// 	new_bob_balance,
-	// 	4161,
-	// 	my_signature,
-	// 	partner_signature,
-	// )
-	// payment.LoadState(
-	// 	r.server.algod_client,
-	// 	onchain_state.app_id,
-	// 	r.server.algo_account,
-	// 	new_alice_balance,
-	// 	new_bob_balance,
-	// 	4161)
-
-	// 3. send new state to partner node
-
-	// send pay request to partner node
+	// 9. update on chain state
+	fmt.Printf("Alice new balance: %v\n", r.server.payment_channels_offchain_states_log[in.AlgoAddress][timestamp_now].alice_balance)
+	fmt.Printf("Bob new balance: %v\n", r.server.payment_channels_offchain_states_log[in.AlgoAddress][timestamp_now].bob_balance)
 
 	timestamp_end := timestamppb.Now()
 

@@ -18,10 +18,6 @@ var payCommand = cli.Command{
 	ArgsUsage: "amount",
 	Flags: []cli.Flag{
 		cli.StringFlag{
-			Name:  "partner_ip",
-			Usage: "ip address of the partner node",
-		},
-		cli.StringFlag{
 			Name:  "partner_address",
 			Usage: "address of the partner node",
 		},
@@ -37,9 +33,6 @@ func pay(ctx *cli.Context) error {
 	if ctx.NArg() != 0 {
 		return cli.NewExitError("incorrect number of arguments", 1)
 	}
-	if ctx.String("partner_ip") == "" {
-		return cli.NewExitError("partner ip address is required", 1)
-	}
 	if ctx.String("partner_address") == "" {
 		return cli.NewExitError("partner address is required", 1)
 	}
@@ -47,13 +40,8 @@ func pay(ctx *cli.Context) error {
 		return cli.NewExitError("amount is required", 1)
 	}
 
-	nodeAddress := &asrpc.StateChannelNodeAddress{
-		Host:        ctx.String("partner_ip"),
-		AlgoAddress: ctx.String("partner_address"),
-	}
-
 	payRequest := &asrpc.PayRequest{
-		PartnerNode: nodeAddress,
+		AlgoAddress: ctx.String("partner_address"),
 		Amount:      ctx.Uint64("amount"),
 	}
 
