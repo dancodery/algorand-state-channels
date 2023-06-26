@@ -55,7 +55,6 @@ func (r *rpcServer) OpenChannel(ctx context.Context, in *asrpc.OpenChannelReques
 		in.PartnerNode.AlgoAddress,
 		in.PenaltyReserve,
 		in.DisputeWindow)
-	fmt.Printf("Created payment channel app with appID: %v\n", appID)
 
 	// 2. Fund payment app
 	payment.SetupPaymentApp(
@@ -63,6 +62,8 @@ func (r *rpcServer) OpenChannel(ctx context.Context, in *asrpc.OpenChannelReques
 		appID,
 		r.server.algo_account,
 		in.FundingAmount)
+
+	fmt.Printf("Created payment channel app with appID: %v\n and funding amount: %v\n", appID, in.FundingAmount)
 
 	// 3. send notification to partner node
 	partner_response, err := sendRequest(in.PartnerNode.Host, P2PRequest{Command: "open_channel_request", Args: [][]byte{[]byte(strconv.Itoa(int(appID)))}})
