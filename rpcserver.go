@@ -63,7 +63,7 @@ func (r *rpcServer) OpenChannel(ctx context.Context, in *asrpc.OpenChannelReques
 		r.server.algo_account,
 		in.FundingAmount)
 
-	fmt.Printf("Created payment channel app with appID: %v\n and funding amount: %v\n", appID, in.FundingAmount)
+	fmt.Printf("Created payment channel app with appID: %v and funding amount: %v\n", appID, in.FundingAmount)
 
 	// 3. send notification to partner node
 	partner_response, err := sendRequest(in.PartnerNode.Host, P2PRequest{Command: "open_channel_request", Args: [][]byte{[]byte(strconv.Itoa(int(appID)))}})
@@ -92,8 +92,24 @@ func (r *rpcServer) OpenChannel(ctx context.Context, in *asrpc.OpenChannelReques
 		}
 		r.server.payment_channels_onchain_states[in.PartnerNode.AlgoAddress] = *onchain_state
 
+		// save the payment channel off chain state
+		off_chain_state := &paymentChannelOffChainState{
+			timestamp: time.Now().UnixNano(),
+
+			alice_balance: onchain_state.alice_onchain_balance,
+			bob_balance:   onchain_state.bob_onchain_balance,
+
+			algorand_port: 4161,
+			app_id:        onchain_state.app_id,
+		}
+
+		if r.server.payment_channels_offchain_states_log[in.PartnerNode.AlgoAddress] == nil {
+			r.server.payment_channels_offchain_states_log[in.PartnerNode.AlgoAddress] = make(map[int64]paymentChannelOffChainState)
+		}
+		r.server.payment_channels_offchain_states_log[in.PartnerNode.AlgoAddress][off_chain_state.timestamp] = *off_chain_state
+
 		// print all payment channel states
-		fmt.Printf("All Current Payment Channel States: %v\n", r.server.payment_channels_onchain_states)
+		fmt.Printf("All Current Payment Channels: %+v\n\n", r.server.payment_channels_onchain_states)
 	case "reject":
 		fmt.Printf("Partner node rejected open channel request\n")
 		return nil, fmt.Errorf("partner node rejected open channel request")
@@ -126,8 +142,18 @@ func (r *rpcServer) Pay(ctx context.Context, in *asrpc.PayRequest) (*asrpc.PayRe
 	}
 
 	// 2. retrieve old balances
-	alice_balance := onchain_state.alice_onchain_balance
-	bob_balance := onchain_state.bob_onchain_balance
+	payment_log, ok := r.server.payment_channels_offchain_states_log[in.AlgoAddress]
+	if !ok {
+		fmt.Printf("Error: payment channel with partner node %v does not exist\n", in.AlgoAddress)
+		return nil, fmt.Errorf("payment channel with partner node %v does not exist", in.AlgoAddress)
+	}
+	latestOffChainState, err := getLatestOffChainState(payment_log)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return nil, err
+	}
+	alice_balance := latestOffChainState.alice_balance
+	bob_balance := latestOffChainState.bob_balance
 
 	// 3. calculate new balances
 	new_alice_balance := alice_balance - in.Amount
@@ -170,7 +196,7 @@ func (r *rpcServer) Pay(ctx context.Context, in *asrpc.PayRequest) (*asrpc.PayRe
 	}
 
 	// 6. read partner node's response
-	fmt.Printf("Partner node response: %v\n", server_response.Message)
+	fmt.Printf("Payment partner node's response: %v\n", server_response.Message)
 	if server_response.Message != "approve" {
 		fmt.Printf("Partner node rejected pay request\n")
 		return nil, fmt.Errorf("partner node rejected pay request")
@@ -212,8 +238,9 @@ func (r *rpcServer) Pay(ctx context.Context, in *asrpc.PayRequest) (*asrpc.PayRe
 	r.server.payment_channels_offchain_states_log[in.AlgoAddress][timestamp_now] = *off_chain_state
 
 	// 9. update on chain state
+	fmt.Printf("Processed payment of %v microalgos\n", in.Amount)
 	fmt.Printf("Alice new balance: %v\n", r.server.payment_channels_offchain_states_log[in.AlgoAddress][timestamp_now].alice_balance)
-	fmt.Printf("Bob new balance: %v\n", r.server.payment_channels_offchain_states_log[in.AlgoAddress][timestamp_now].bob_balance)
+	fmt.Printf("Bob new balance: %v\n\n", r.server.payment_channels_offchain_states_log[in.AlgoAddress][timestamp_now].bob_balance)
 
 	timestamp_end := timestamppb.Now()
 
@@ -223,6 +250,77 @@ func (r *rpcServer) Pay(ctx context.Context, in *asrpc.PayRequest) (*asrpc.PayRe
 	}
 
 	return &asrpc.PayResponse{
+		RuntimeRecording: runtime_recording,
+	}, nil
+}
+
+func (r *rpcServer) InitiateCloseChannel(ctx context.Context, in *asrpc.InitiateCloseChannelRequest) (*asrpc.InitiateCloseChannelResponse, error) {
+	timestamp_start := timestamppb.Now()
+
+	// 1. get on chain state
+	onchain_state, ok := r.server.payment_channels_onchain_states[in.AlgoAddress]
+	if !ok {
+		fmt.Printf("Error: payment channel with partner node %v does not exist\n", in.AlgoAddress)
+		return nil, fmt.Errorf("payment channel with partner node %v does not exist", in.AlgoAddress)
+	}
+
+	// 2. retrieve latest off chain state
+	payment_log, ok := r.server.payment_channels_offchain_states_log[in.AlgoAddress]
+	if !ok {
+		fmt.Printf("Error: payment channel with partner node %v does not exist\n", in.AlgoAddress)
+		return nil, fmt.Errorf("payment channel with partner node %v does not exist", in.AlgoAddress)
+	}
+	latestOffChainState, err := getLatestOffChainState(payment_log)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return nil, err
+	}
+
+	payment.InitiateCloseChannel(
+		r.server.algod_client,
+		r.server.algo_account,
+		4161,
+		onchain_state.app_id,
+		latestOffChainState.alice_balance,
+		latestOffChainState.bob_balance,
+		uint64(latestOffChainState.timestamp),
+		latestOffChainState.alice_signature,
+		latestOffChainState.bob_signature)
+
+	timestamp_end := timestamppb.Now()
+
+	runtime_recording := &asrpc.RuntimeRecording{
+		TimestampStart: timestamp_start,
+		TimestampEnd:   timestamp_end,
+	}
+	return &asrpc.InitiateCloseChannelResponse{
+		RuntimeRecording: runtime_recording,
+	}, nil
+}
+
+func (r *rpcServer) FinalizeCloseChannel(ctx context.Context, in *asrpc.FinalizeCloseChannelRequest) (*asrpc.FinalizeCloseChannelResponse, error) {
+	timestamp_start := timestamppb.Now()
+
+	// 1. get on chain state
+	onchain_state, ok := r.server.payment_channels_onchain_states[in.AlgoAddress]
+	if !ok {
+		fmt.Printf("Error: payment channel with partner node %v does not exist\n", in.AlgoAddress)
+		return nil, fmt.Errorf("payment channel with partner node %v does not exist", in.AlgoAddress)
+	}
+
+	// 2. call finalize close channel
+	payment.FinalizeCloseChannel(
+		r.server.algod_client,
+		r.server.algo_account,
+		onchain_state.app_id)
+
+	timestamp_end := timestamppb.Now()
+
+	runtime_recording := &asrpc.RuntimeRecording{
+		TimestampStart: timestamp_start,
+		TimestampEnd:   timestamp_end,
+	}
+	return &asrpc.FinalizeCloseChannelResponse{
 		RuntimeRecording: runtime_recording,
 	}, nil
 }
