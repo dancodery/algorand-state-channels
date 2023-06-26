@@ -27,6 +27,9 @@ CLEAR_STATE_PROGRAM = b""
 HOST = "localhost"
 PORT = 28547
 
+NUM_UINTS = 12
+NUM_BYTESLICES = 3
+
 
 def getContracts(client: AlgodClient) -> Tuple[bytes, bytes]:
     """Get the compiled TEAL contracts for the payment.
@@ -64,7 +67,7 @@ def createPaymentApp(
     """
     approval, clear = getContracts(client)
 
-    globalSchema = transaction.StateSchema(num_uints=8, num_byte_slices=2)
+    globalSchema = transaction.StateSchema(num_uints=NUM_UINTS, num_byte_slices=NUM_BYTESLICES)
     localSchema = transaction.StateSchema(num_uints=0, num_byte_slices=0)
 
     app_args = [
@@ -212,7 +215,7 @@ def increaseBudgetSignAndSendTransaction(
 
 def signState(
         client: AlgodClient,
-        appID: int,
+        app_id: int,
         alice: Account,
         bob: Account,
         alice_balance: int,
@@ -228,11 +231,12 @@ def signState(
     Returns:
         A tuple of 2 integers. The first is the new balance of Alice, and the second is the new balance of Bob.
     """
-    suggestedParams = client.suggested_params()
+    app_id = 1
     timestamp = 1685318789
+    suggestedParams = client.suggested_params()
 
     data_raw = (algorand_port).to_bytes(8, "big") + b"," \
-                + (appID).to_bytes(8, "big") + b"," \
+                + (app_id).to_bytes(8, "big") + b"," \
                 + (alice_balance).to_bytes(8, "big") + b"," \
                 + (bob_balance).to_bytes(8, "big") + b"," \
                 + (timestamp).to_bytes(8, "big")
@@ -241,16 +245,23 @@ def signState(
     alice_signed_bytes = signBytes(data_hashed, alice.getPrivateKey())
     bob_signed_bytes = signBytes(data_hashed, bob.getPrivateKey())
 
-    # alice_pub_key = alice.getAddress()
-    # bob_pub_key = bob.getAddress()
+    alice_pub_key = alice.getAddress()
+    bob_pub_key = bob.getAddress()
 
     # print(data.hex())
     # print(base64.b64decode(signed_bytes).hex())
     # print(encoding.decode_address(pub_key).hex(), "\n")
-    # if verifyBytes(data, signed_bytes, pub_key):
+    # if verifyBytes(data_hashed, alice_signed_bytes, alice_pub_key):
     #     print("Signature is valid")
     # else:
     #     print("Signature is invalid")
+
+    # print("Algorand Port Bytes: ", "[" + " ".join(str(x) for x in (algorand_port).to_bytes(8, "big")) + "]")
+    # print("Alice Balance Bytes: ", "[" + " ".join(str(x) for x in (alice_balance).to_bytes(8, "big")) + "]")
+    # print("Bob Balance Bytes: ", "[" + " ".join(str(x) for x in (bob_balance).to_bytes(8, "big")) + "]")
+    # print("Timestamp Bytes: ", "[" + " ".join(str(x) for x in (timestamp).to_bytes(8, "big")) + "]")
+    print("Alice Address: ", alice.getAddress())
+    print("Alice Signed Bytes: ", "[" + " ".join(str(x) for x in base64.b64decode(alice_signed_bytes)) + "]")
 
     app_args = [
         b"loadState",
@@ -265,15 +276,15 @@ def signState(
     ]
     signStateAppTxn = transaction.ApplicationCallTxn(
         sender=alice.getAddress(),
-        index=appID,
+        index=app_id,
         on_complete=transaction.OnComplete.NoOpOC,
         app_args=app_args,
         sp=suggestedParams,
     )    
-    increaseBudgetSignAndSendTransaction(client, appID, alice, signStateAppTxn, 3930) # 1x Sha3_256 a 130 + 2x Ed25519Verify a 1900
+    increaseBudgetSignAndSendTransaction(client, app_id, alice, signStateAppTxn, 3930) # 1x Sha3_256 a 130 + 2x Ed25519Verify a 1900
     
     # return Alice and Bob's balances
-    newGlobalState = getAppGlobalState(client, appID)
+    newGlobalState = getAppGlobalState(client, app_id)
     aliceBalance = newGlobalState[b"latest_alice_balance"]
     try:
         bobBalance = newGlobalState[b"latest_bob_balance"]

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -13,8 +14,12 @@ import (
 	"github.com/algorand/go-algorand-sdk/v2/crypto"
 	"github.com/algorand/go-algorand-sdk/v2/transaction"
 	"github.com/algorand/go-algorand-sdk/v2/types"
+	"golang.org/x/crypto/ed25519"
 	"golang.org/x/crypto/sha3"
 )
+
+const NUM_UINTS = 8
+const NUM_BYTE_SLICES = 2
 
 // CompileTeal compiles a teal file into binary
 func CompileTeal(algodClient *algod.Client, path string) []byte {
@@ -38,6 +43,21 @@ func CompileTeal(algodClient *algod.Client, path string) []byte {
 	return bin
 }
 
+func CompilePaymentPrograms(algodClient *algod.Client) (approvalProgram []byte, clearProgram []byte) {
+	// compile approval program
+	approvalProgram = CompileTeal(algodClient, "smart_contracts/payment_approval.teal")
+	if approvalProgram == nil {
+		fmt.Printf("Error compiling approval program\n")
+	}
+
+	// compile clear program
+	clearProgram = CompileTeal(algodClient, "smart_contracts/payment_clear_state.teal")
+	if clearProgram == nil {
+		fmt.Printf("Error compiling clear program\n")
+	}
+	return
+}
+
 // CreatePaymentApp creates a new payment channel smart contract
 func CreatePaymentApp(
 	algodClient *algod.Client,
@@ -45,17 +65,7 @@ func CreatePaymentApp(
 	partnerAlgoAddress string,
 	penaltyReserve uint64,
 	disputeWindow uint64) uint64 {
-	// compile approval program
-	approvalBinary := CompileTeal(algodClient, "smart_contracts/payment_approval.teal")
-	if approvalBinary == nil {
-		fmt.Printf("Error compiling approval program\n")
-	}
-
-	// compile clear program
-	clearBinary := CompileTeal(algodClient, "smart_contracts/payment_clear_state.teal")
-	if clearBinary == nil {
-		fmt.Printf("Error compiling clear program\n")
-	}
+	approvalBinary, clearBinary := CompilePaymentPrograms(algodClient)
 
 	// create application deployment transaction
 	sp, err := algodClient.SuggestedParams().Do(context.Background())
@@ -81,8 +91,8 @@ func CreatePaymentApp(
 	paymentAppTxn, err := transaction.MakeApplicationCreateTx(
 		false,                       // opt-in
 		approvalBinary, clearBinary, // approval and clear programs
-		types.StateSchema{NumUint: 8, NumByteSlice: 2}, // global state schema
-		types.StateSchema{NumUint: 0, NumByteSlice: 0}, // local state schema
+		types.StateSchema{NumUint: NUM_UINTS, NumByteSlice: NUM_BYTE_SLICES}, // global state schema
+		types.StateSchema{NumUint: 0, NumByteSlice: 0},                       // local state schema
 		app_args,              // app arguments
 		nil,                   // accounts
 		nil,                   // foreign apps
@@ -195,35 +205,17 @@ func SetupPaymentApp(
 	}
 }
 
-func SignState(
+func LoadState(
 	client *algod.Client,
-	appID uint64,
+	app_id uint64,
 	alice crypto.Account,
-	aliceBalance uint64,
-	bobBalance uint64,
-	algorandPort uint64,
+	alice_balance uint64,
+	bob_balance uint64,
+	algorand_port uint64,
+	alice_signed_bytes []byte,
+	bob_signed_bytes []byte,
 ) {
 	var timestamp uint64 = 1685318789
-
-	data_raw := make([]byte, 0)
-	data_raw = append(data_raw, uint64ToBytes(algorandPort)...)
-	data_raw = append(data_raw, []byte(",")...)
-	data_raw = append(data_raw, uint64ToBytes(appID)...)
-	data_raw = append(data_raw, []byte(",")...)
-	data_raw = append(data_raw, uint64ToBytes(aliceBalance)...)
-	data_raw = append(data_raw, []byte(",")...)
-	data_raw = append(data_raw, uint64ToBytes(bobBalance)...)
-	data_raw = append(data_raw, []byte(",")...)
-	data_raw = append(data_raw, uint64ToBytes(timestamp)...)
-
-	data_hashed := sha3.Sum256(data_raw)
-	alice_signed_bytes, err := crypto.SignBytes(alice.PrivateKey, data_hashed[:])
-	if err != nil {
-		fmt.Printf("Error signing bytes: %v\n", err)
-	}
-
-	// print signed bytes
-	fmt.Printf("Signed bytes: %v\n", base64.StdEncoding.EncodeToString(alice_signed_bytes))
 
 	sp, err := client.SuggestedParams().Do(context.Background())
 	if err != nil {
@@ -231,13 +223,13 @@ func SignState(
 	}
 
 	algorandPortBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(algorandPortBytes, algorandPort)
+	binary.BigEndian.PutUint64(algorandPortBytes, algorand_port)
 
 	aliceBalanceBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(aliceBalanceBytes, aliceBalance)
+	binary.BigEndian.PutUint64(aliceBalanceBytes, alice_balance)
 
 	bobBalanceBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(bobBalanceBytes, bobBalance)
+	binary.BigEndian.PutUint64(bobBalanceBytes, bob_balance)
 
 	timestampBytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(timestampBytes, timestamp)
@@ -251,10 +243,11 @@ func SignState(
 		timestampBytes,    // timestamp
 		// END SIGNED VALUES
 		alice_signed_bytes,
+		bob_signed_bytes,
 	}
 
 	callAppLoadStateTxn, err := transaction.MakeApplicationNoOpTx(
-		appID,             // app_id
+		app_id,            // app_id
 		app_args,          // app_args
 		nil,               // accounts
 		nil,               // foreign_apps
@@ -273,11 +266,67 @@ func SignState(
 	// increase budget and send transaction
 	IncreaseBudgetSignAndSendTransaction(
 		client,
-		appID,
+		app_id,
 		alice,
 		callAppLoadStateTxn,
 		3930) // 1x Sha3_256 a 130 + 2x Ed25519Verify a 1900
+}
 
+func SignState(
+	appID uint64,
+	account crypto.Account,
+	aliceBalance uint64,
+	bobBalance uint64,
+	algorandPort uint64,
+	timestamp int64,
+) ([]byte, error) {
+	data_raw := make([]byte, 0)
+	data_raw = append(data_raw, uint64ToBytes(algorandPort)...)
+	data_raw = append(data_raw, []byte(",")...)
+	data_raw = append(data_raw, uint64ToBytes(appID)...)
+	data_raw = append(data_raw, []byte(",")...)
+	data_raw = append(data_raw, uint64ToBytes(aliceBalance)...)
+	data_raw = append(data_raw, []byte(",")...)
+	data_raw = append(data_raw, uint64ToBytes(bobBalance)...)
+	data_raw = append(data_raw, []byte(",")...)
+	data_raw = append(data_raw, uint64ToBytes(uint64(timestamp))...)
+	data_hashed := sha3.Sum256(data_raw)
+
+	signed_bytes := ed25519.Sign(account.PrivateKey, data_hashed[:])
+	if signed_bytes == nil {
+		return nil, errors.New("error signing bytes")
+	}
+	return signed_bytes, nil
+}
+
+func VerifyState(
+	appID uint64,
+	aliceBalance uint64,
+	bobBalance uint64,
+	algorandPort uint64,
+	signature []byte,
+	algo_address string,
+	timestamp int64,
+) bool {
+	data_raw := make([]byte, 0)
+	data_raw = append(data_raw, uint64ToBytes(algorandPort)...)
+	data_raw = append(data_raw, []byte(",")...)
+	data_raw = append(data_raw, uint64ToBytes(appID)...)
+	data_raw = append(data_raw, []byte(",")...)
+	data_raw = append(data_raw, uint64ToBytes(aliceBalance)...)
+	data_raw = append(data_raw, []byte(",")...)
+	data_raw = append(data_raw, uint64ToBytes(bobBalance)...)
+	data_raw = append(data_raw, []byte(",")...)
+	data_raw = append(data_raw, uint64ToBytes(uint64(timestamp))...)
+	data_hashed := sha3.Sum256(data_raw)
+
+	decoded_address, err := types.DecodeAddress(algo_address)
+	if err != nil {
+		fmt.Printf("Error decoding address: %v\n", err)
+	}
+
+	pub_key := ed25519.PublicKey(decoded_address[:])
+	return ed25519.Verify(pub_key, data_hashed[:], signature)
 }
 
 func uint64ToBytes(val uint64) []byte {
@@ -372,47 +421,3 @@ func IncreaseBudgetSignAndSendTransaction(
 		fmt.Printf("Error waiting for confirmation: %v\n", err)
 	}
 }
-
-// suggestedParams = client.suggested_params()
-
-// bob_signed_bytes = signBytes(data_hashed, bob.getPrivateKey())
-
-// # alice_pub_key = alice.getAddress()
-// # bob_pub_key = bob.getAddress()
-
-// # print(data.hex())
-// # print(base64.b64decode(signed_bytes).hex())
-// # print(encoding.decode_address(pub_key).hex(), "\n")
-// # if verifyBytes(data, signed_bytes, pub_key):
-// #     print("Signature is valid")
-// # else:
-// #     print("Signature is invalid")
-
-// app_args = [
-// 	b"loadState",
-// 	# BEGIN signed values
-// 	(algorand_port).to_bytes(8, "big"), # algorand_port
-// 	(alice_balance).to_bytes(8, "big"), # alice_balance
-// 	(bob_balance).to_bytes(8, "big"), # bob_balance
-// 	(timestamp).to_bytes(8, "big"), # timestamp
-// 	# END signed values
-// 	base64.b64decode(alice_signed_bytes),
-// 	base64.b64decode(bob_signed_bytes),
-// ]
-// signStateAppTxn = transaction.ApplicationCallTxn(
-// 	sender=alice.getAddress(),
-// 	index=appID,
-// 	on_complete=transaction.OnComplete.NoOpOC,
-// 	app_args=app_args,
-// 	sp=suggestedParams,
-// )
-// increaseBudgetSignAndSendTransaction(client, appID, alice, signStateAppTxn, 3930) # 1x Sha3_256 a 130 + 2x Ed25519Verify a 1900
-
-// # return Alice and Bob's balances
-// newGlobalState = getAppGlobalState(client, appID)
-// aliceBalance = newGlobalState[b"latest_alice_balance"]
-// try:
-// 	bobBalance = newGlobalState[b"latest_bob_balance"]
-// except KeyError:
-// 	bobBalance = 0
-// return (aliceBalance, bobBalance)
