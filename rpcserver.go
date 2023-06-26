@@ -132,7 +132,7 @@ func (r *rpcServer) Pay(ctx context.Context, in *asrpc.PayRequest) (*asrpc.PayRe
 	new_bob_balance := bob_balance + in.Amount
 
 	// 3. sign new state
-	timestamp_now := time.Now().Unix()
+	timestamp_now := time.Now().UnixNano()
 
 	my_signature, err := payment.SignState(
 		onchain_state.app_id,

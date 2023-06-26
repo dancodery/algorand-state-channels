@@ -38,7 +38,7 @@ type paymentChannelOnChainState struct {
 }
 
 type paymentChannelOffChainState struct {
-	timestamp int64
+	timestamp int64 // unix timestamp in nanoseconds
 
 	alice_balance uint64
 	bob_balance   uint64
@@ -220,6 +220,8 @@ func (s *server) handleConnection(conn net.Conn) {
 		last_alice_balance := latestOffChainState.alice_balance
 		last_bob_balance := latestOffChainState.bob_balance
 		last_timestamp := latestOffChainState.timestamp
+		fmt.Printf("received timestamp: %d\n", new_timestamp)
+		fmt.Printf("last timestamp: %d\n", last_timestamp)
 
 		// 3. verify that all new parameters are beneficial for me
 		alice_balance_diff := int64(alice_new_balance) - int64(last_alice_balance)
@@ -479,7 +481,7 @@ func (s *server) savePaymentChannelOnChainState(appID uint64, global_state []mod
 
 	// save offchain_state in log
 	off_chain_state := &paymentChannelOffChainState{
-		timestamp: time.Now().Unix(),
+		timestamp: time.Now().UnixNano(),
 
 		alice_balance: onchain_state.alice_latest_balance,
 		bob_balance:   onchain_state.bob_latest_balance,
