@@ -35,6 +35,7 @@ def getTemporaryAccount(client: AlgodClient, seed_phrase: Optional[str] = None) 
 
     waitForTransaction(client, signedTxn.get_txid())
 
+    return account
 
     ##### OLD CODE #####
     # global accountList
