@@ -10,6 +10,12 @@ service ASRPC {
     rpc OpenChannel(OpenChannelRequest) returns (OpenChannelResponse) {}
 
     rpc Pay(PayRequest) returns (PayResponse) {}
+
+    rpc CloseChannel(CloseChannelRequest) returns (CloseChannelResponse) {}
+
+    rpc InitiateCloseChannel(InitiateCloseChannelRequest) returns (InitiateCloseChannelResponse) {}
+
+    rpc FinalizeCloseChannel(FinalizeCloseChannelRequest) returns (FinalizeCloseChannelResponse) {}
 }
 
 message StateChannelNodeAddress {
@@ -49,3 +55,28 @@ message PayRequest {
 message PayResponse {
     RuntimeRecording runtime_recording = 1;
 }
+
+message CloseChannelRequest {
+    string algo_address = 1;
+}
+
+message CloseChannelResponse {
+    RuntimeRecording runtime_recording = 1;
+}
+
+message InitiateCloseChannelRequest {
+    string algo_address = 1;
+}
+
+message InitiateCloseChannelResponse {
+    RuntimeRecording runtime_recording = 1;
+}
+
+message FinalizeCloseChannelRequest {
+    string algo_address = 1;
+}
+
+message FinalizeCloseChannelResponse {
+    RuntimeRecording runtime_recording = 1;
+}
+

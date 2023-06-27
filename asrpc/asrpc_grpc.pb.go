@@ -25,6 +25,9 @@ type ASRPCClient interface {
 	GetInfo(ctx context.Context, in *GetInfoRequest, opts ...grpc.CallOption) (*GetInfoResponse, error)
 	OpenChannel(ctx context.Context, in *OpenChannelRequest, opts ...grpc.CallOption) (*OpenChannelResponse, error)
 	Pay(ctx context.Context, in *PayRequest, opts ...grpc.CallOption) (*PayResponse, error)
+	CloseChannel(ctx context.Context, in *CloseChannelRequest, opts ...grpc.CallOption) (*CloseChannelResponse, error)
+	InitiateCloseChannel(ctx context.Context, in *InitiateCloseChannelRequest, opts ...grpc.CallOption) (*InitiateCloseChannelResponse, error)
+	FinalizeCloseChannel(ctx context.Context, in *FinalizeCloseChannelRequest, opts ...grpc.CallOption) (*FinalizeCloseChannelResponse, error)
 }
 
 type aSRPCClient struct {
@@ -62,6 +65,33 @@ func (c *aSRPCClient) Pay(ctx context.Context, in *PayRequest, opts ...grpc.Call
 	return out, nil
 }
 
+func (c *aSRPCClient) CloseChannel(ctx context.Context, in *CloseChannelRequest, opts ...grpc.CallOption) (*CloseChannelResponse, error) {
+	out := new(CloseChannelResponse)
+	err := c.cc.Invoke(ctx, "/ASRPC/CloseChannel", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aSRPCClient) InitiateCloseChannel(ctx context.Context, in *InitiateCloseChannelRequest, opts ...grpc.CallOption) (*InitiateCloseChannelResponse, error) {
+	out := new(InitiateCloseChannelResponse)
+	err := c.cc.Invoke(ctx, "/ASRPC/InitiateCloseChannel", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *aSRPCClient) FinalizeCloseChannel(ctx context.Context, in *FinalizeCloseChannelRequest, opts ...grpc.CallOption) (*FinalizeCloseChannelResponse, error) {
+	out := new(FinalizeCloseChannelResponse)
+	err := c.cc.Invoke(ctx, "/ASRPC/FinalizeCloseChannel", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ASRPCServer is the server API for ASRPC service.
 // All implementations must embed UnimplementedASRPCServer
 // for forward compatibility
@@ -69,6 +99,9 @@ type ASRPCServer interface {
 	GetInfo(context.Context, *GetInfoRequest) (*GetInfoResponse, error)
 	OpenChannel(context.Context, *OpenChannelRequest) (*OpenChannelResponse, error)
 	Pay(context.Context, *PayRequest) (*PayResponse, error)
+	CloseChannel(context.Context, *CloseChannelRequest) (*CloseChannelResponse, error)
+	InitiateCloseChannel(context.Context, *InitiateCloseChannelRequest) (*InitiateCloseChannelResponse, error)
+	FinalizeCloseChannel(context.Context, *FinalizeCloseChannelRequest) (*FinalizeCloseChannelResponse, error)
 	mustEmbedUnimplementedASRPCServer()
 }
 
@@ -84,6 +117,15 @@ func (UnimplementedASRPCServer) OpenChannel(context.Context, *OpenChannelRequest
 }
 func (UnimplementedASRPCServer) Pay(context.Context, *PayRequest) (*PayResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Pay not implemented")
+}
+func (UnimplementedASRPCServer) CloseChannel(context.Context, *CloseChannelRequest) (*CloseChannelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CloseChannel not implemented")
+}
+func (UnimplementedASRPCServer) InitiateCloseChannel(context.Context, *InitiateCloseChannelRequest) (*InitiateCloseChannelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method InitiateCloseChannel not implemented")
+}
+func (UnimplementedASRPCServer) FinalizeCloseChannel(context.Context, *FinalizeCloseChannelRequest) (*FinalizeCloseChannelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FinalizeCloseChannel not implemented")
 }
 func (UnimplementedASRPCServer) mustEmbedUnimplementedASRPCServer() {}
 
@@ -152,6 +194,60 @@ func _ASRPC_Pay_Handler(srv interface{}, ctx context.Context, dec func(interface
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ASRPC_CloseChannel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CloseChannelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ASRPCServer).CloseChannel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ASRPC/CloseChannel",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ASRPCServer).CloseChannel(ctx, req.(*CloseChannelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ASRPC_InitiateCloseChannel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(InitiateCloseChannelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ASRPCServer).InitiateCloseChannel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ASRPC/InitiateCloseChannel",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ASRPCServer).InitiateCloseChannel(ctx, req.(*InitiateCloseChannelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ASRPC_FinalizeCloseChannel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FinalizeCloseChannelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ASRPCServer).FinalizeCloseChannel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ASRPC/FinalizeCloseChannel",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ASRPCServer).FinalizeCloseChannel(ctx, req.(*FinalizeCloseChannelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ASRPC_ServiceDesc is the grpc.ServiceDesc for ASRPC service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -170,6 +266,18 @@ var ASRPC_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Pay",
 			Handler:    _ASRPC_Pay_Handler,
+		},
+		{
+			MethodName: "CloseChannel",
+			Handler:    _ASRPC_CloseChannel_Handler,
+		},
+		{
+			MethodName: "InitiateCloseChannel",
+			Handler:    _ASRPC_InitiateCloseChannel_Handler,
+		},
+		{
+			MethodName: "FinalizeCloseChannel",
+			Handler:    _ASRPC_FinalizeCloseChannel_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
