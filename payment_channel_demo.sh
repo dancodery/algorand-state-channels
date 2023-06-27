@@ -60,7 +60,7 @@ source "$CONFIG_FILE"
 
 echo "Configuration values:"
 echo "dispute_window=$dispute_window"
-# echo "runs=$runs"
+echo "alice_to_bob_payment_rounds=$alice_to_bob_payment_rounds"
 # echo "port=$port"
 # echo "outfile=$outfile"
 echo
@@ -70,31 +70,40 @@ echo "Starting the demo..."
 echo "======================================================"
 echo 
 
+
+# Resetting Alice and Bob's nodes
+echo "Resetting Alice and Bob's nodes..."
+run-in-node asc-alice "ascli reset"
+run-in-node asc-bob "ascli reset"
+echo
+
+# Print Alice and Bob's addresses
+
 # Alice: get algo address
 echo "Getting algo address from Alice..."
 alice_address=$(run-in-node asc-alice "ascli getinfo | jq -r .algo_address") # save Alice's address as raw string
-# Print Alice and Bob's addresses
+alice_starting_balance=$(run-in-node asc-alice "ascli getinfo | jq -r .algo_balance") # save Alice's balance as raw string
 echo "Alice's address: ${alice_address}"
+echo "Alice's starting balance: ${alice_starting_balance}"
 
 # Bob: get algo address
 echo "Getting algo address from Bob..."
 bob_address=$(run-in-node asc-bob "ascli getinfo | jq -r .algo_address") # save Bob's address as raw string
+bob_starting_balance=$(run-in-node asc-bob "ascli getinfo | jq -r .algo_balance") # save Bob's balance as raw string
 echo "Bob's address: ${bob_address}"
+echo "Bob's starting balance: ${bob_starting_balance}"
 
 # Alice: open a channel with Bob
 echo 
 echo "Alice opening a channel with Bob..."
 run-in-node asc-alice "ascli openchannel --partner_ip=asc-bob --partner_address=${bob_address} --funding_amount=2_000_000_000 --penalty_reserve=100_000 --dispute_window=${dispute_window}"
 
-# Alice pays to Bob 100 microAlgos
-echo
-echo "Alice paying Bob 100 microAlgos..."
-run-in-node asc-alice "ascli pay --partner_address=${bob_address} --amount=100"
-
-# Alice pays again to Bob 100 microAlgos
-echo
-echo "Alice paying Bob 100 microAlgos..."
-run-in-node asc-alice "ascli pay --partner_address=${bob_address} --amount=100"
+# Make payments from Alice to Bob
+for ((i=1; i<=${alice_to_bob_payment_rounds}; i++)); do
+	echo
+	echo "Alice paying Bob 300 microAlgos (round ${i})..."
+	run-in-node asc-alice "ascli pay --partner_address=${bob_address} --amount=300"
+done
 
 # Initiate closing the channel
 echo
@@ -106,7 +115,7 @@ echo
 echo "Waiting for dispute window to expire: ${dispute_window} * 4 seconds..."
 sleep $(echo "${dispute_window} * 4" | bc)
 
-# # Finalize closing the channel
-# echo
-# echo "Alice finalizing channel closing..."
-# run-in-node asc-alice "ascli finalizeclosechannel --partner_address=${bob_address}"
+# Finalize closing the channel
+echo
+echo "Alice finalizing channel closing..."
+run-in-node asc-alice "ascli finalizeclosechannel --partner_address=${bob_address}"
