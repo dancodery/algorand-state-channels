@@ -181,7 +181,7 @@ func (s *server) handleConnection(conn net.Conn) {
 		// save the new payment channel state
 		s.savePaymentChannelOnChainState(app_id, blockchain_app_info.Params.GlobalState)
 
-		fmt.Printf("The payment channel with app_id %d was opened successfully.\n", app_id)
+		fmt.Printf("\nThe payment channel with app_id %d was opened successfully.\n", app_id)
 
 		// print s.payment_channels_onchain_states
 		fmt.Println("payment_channels_onchain_states: ", s.payment_channels_onchain_states)
@@ -194,7 +194,6 @@ func (s *server) handleConnection(conn net.Conn) {
 		new_timestamp := int64(binary.BigEndian.Uint64(client_request.Args[3]))
 
 		channel_partner_signature := client_request.Args[4]
-		fmt.Println("Received alice signature: ", channel_partner_signature)
 
 		// 1. load onchain state
 		onchain_state, ok := s.payment_channels_onchain_states[alice_address]
@@ -220,8 +219,6 @@ func (s *server) handleConnection(conn net.Conn) {
 		last_alice_balance := latestOffChainState.alice_balance
 		last_bob_balance := latestOffChainState.bob_balance
 		last_timestamp := latestOffChainState.timestamp
-		fmt.Printf("received timestamp: %d\n", new_timestamp)
-		fmt.Printf("last timestamp: %d\n", last_timestamp)
 
 		// 3. verify that all new parameters are beneficial for me
 		alice_balance_diff := int64(alice_new_balance) - int64(last_alice_balance)
@@ -267,10 +264,7 @@ func (s *server) handleConnection(conn net.Conn) {
 			return
 		}
 
-		fmt.Println("My signature for the requested state: ", my_signature)
-
 		// 6. save new state
-
 		off_chain_state := &paymentChannelOffChainState{
 			timestamp: new_timestamp,
 
@@ -381,7 +375,7 @@ func (s *server) doOpenChannelSecurityChecks(blockchain_app_info models.Applicat
 		return false
 	}
 	dispute_window := parseInt(string(dispute_window_value))
-	min_dispute_window := 500
+	min_dispute_window := 2
 	max_dispute_window := 10_000
 	dispute_window_check := dispute_window >= min_dispute_window && dispute_window <= max_dispute_window
 	if !dispute_window_check {
