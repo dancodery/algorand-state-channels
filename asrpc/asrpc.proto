@@ -5,6 +5,8 @@ import "google/protobuf/timestamp.proto";
 option go_package = "github.com/dancodery/algorand-state-channels/asrpc";
 
 service ASRPC {
+    rpc Reset(ResetRequest) returns (ResetResponse) {}
+
     rpc GetInfo(GetInfoRequest) returns (GetInfoResponse) {}
 
     rpc OpenChannel(OpenChannelRequest) returns (OpenChannelResponse) {}
@@ -28,11 +30,18 @@ message RuntimeRecording {
     google.protobuf.Timestamp timestamp_end = 2;
 }
 
+message ResetRequest {}
+
+message ResetResponse {
+    RuntimeRecording runtime_recording = 1;
+}
+
 message GetInfoRequest {}
 
 message GetInfoResponse {
     string algo_address = 1;
-    RuntimeRecording runtime_recording = 2;
+    uint64 algo_balance = 2;
+    RuntimeRecording runtime_recording = 3;
 }
 
 message OpenChannelRequest {

@@ -22,6 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ASRPCClient interface {
+	Reset(ctx context.Context, in *ResetRequest, opts ...grpc.CallOption) (*ResetResponse, error)
 	GetInfo(ctx context.Context, in *GetInfoRequest, opts ...grpc.CallOption) (*GetInfoResponse, error)
 	OpenChannel(ctx context.Context, in *OpenChannelRequest, opts ...grpc.CallOption) (*OpenChannelResponse, error)
 	Pay(ctx context.Context, in *PayRequest, opts ...grpc.CallOption) (*PayResponse, error)
@@ -36,6 +37,15 @@ type aSRPCClient struct {
 
 func NewASRPCClient(cc grpc.ClientConnInterface) ASRPCClient {
 	return &aSRPCClient{cc}
+}
+
+func (c *aSRPCClient) Reset(ctx context.Context, in *ResetRequest, opts ...grpc.CallOption) (*ResetResponse, error) {
+	out := new(ResetResponse)
+	err := c.cc.Invoke(ctx, "/ASRPC/Reset", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *aSRPCClient) GetInfo(ctx context.Context, in *GetInfoRequest, opts ...grpc.CallOption) (*GetInfoResponse, error) {
@@ -96,6 +106,7 @@ func (c *aSRPCClient) FinalizeCloseChannel(ctx context.Context, in *FinalizeClos
 // All implementations must embed UnimplementedASRPCServer
 // for forward compatibility
 type ASRPCServer interface {
+	Reset(context.Context, *ResetRequest) (*ResetResponse, error)
 	GetInfo(context.Context, *GetInfoRequest) (*GetInfoResponse, error)
 	OpenChannel(context.Context, *OpenChannelRequest) (*OpenChannelResponse, error)
 	Pay(context.Context, *PayRequest) (*PayResponse, error)
@@ -109,6 +120,9 @@ type ASRPCServer interface {
 type UnimplementedASRPCServer struct {
 }
 
+func (UnimplementedASRPCServer) Reset(context.Context, *ResetRequest) (*ResetResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Reset not implemented")
+}
 func (UnimplementedASRPCServer) GetInfo(context.Context, *GetInfoRequest) (*GetInfoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetInfo not implemented")
 }
@@ -138,6 +152,24 @@ type UnsafeASRPCServer interface {
 
 func RegisterASRPCServer(s grpc.ServiceRegistrar, srv ASRPCServer) {
 	s.RegisterService(&ASRPC_ServiceDesc, srv)
+}
+
+func _ASRPC_Reset_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ResetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ASRPCServer).Reset(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ASRPC/Reset",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ASRPCServer).Reset(ctx, req.(*ResetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _ASRPC_GetInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -255,6 +287,10 @@ var ASRPC_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "ASRPC",
 	HandlerType: (*ASRPCServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Reset",
+			Handler:    _ASRPC_Reset_Handler,
+		},
 		{
 			MethodName: "GetInfo",
 			Handler:    _ASRPC_GetInfo_Handler,
