@@ -327,6 +327,12 @@ func (r *rpcServer) InitiateCloseChannel(ctx context.Context, in *asrpc.Initiate
 		return nil, err
 	}
 
+	// check if alice or bob have not enough balance to close channel
+	if latestOffChainState.alice_balance < 1000 || latestOffChainState.bob_balance < 1000 {
+		fmt.Printf("Error: not enough balance to close channel\n")
+		return nil, fmt.Errorf("not enough balance to close channel")
+	}
+
 	payment.InitiateCloseChannel(
 		r.server.algod_client,
 		r.server.algo_account,
