@@ -47,6 +47,9 @@ func main() {
 		openChannelCommand,
 		payCommand,
 		closeChannelCommand,
+		initiateChannelClosingCommand,
+		finalizeChannelClosingCommand,
+		// cooperativecloseChannelCommand,
 	}
 
 	if err := app.Run(os.Args); err != nil {
