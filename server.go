@@ -489,3 +489,12 @@ func (s *server) savePaymentChannelOnChainState(appID uint64, global_state []mod
 	}
 	s.payment_channels_offchain_states_log[onchain_state.alice_address][off_chain_state.timestamp] = *off_chain_state
 }
+
+func (s *server) getAlgoBalance(address string) (uint64, error) {
+	// get balance
+	account_info, err := s.algod_client.AccountInformation(address).Do(context.Background())
+	if err != nil {
+		return 0, err
+	}
+	return account_info.Amount, nil
+}
