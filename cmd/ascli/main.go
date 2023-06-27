@@ -43,6 +43,7 @@ func main() {
 	app.Name = "ascli"
 	app.Usage = "control plane for asd"
 	app.Commands = []cli.Command{
+		resetCommand,
 		getInfoCommand,
 		openChannelCommand,
 		payCommand,

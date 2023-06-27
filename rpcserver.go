@@ -4,11 +4,16 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"log"
+	"os"
 	"strconv"
 	"time"
 
+	"github.com/algorand/go-algorand-sdk/v2/crypto"
+	"github.com/algorand/go-algorand-sdk/v2/mnemonic"
 	"github.com/dancodery/algorand-state-channels/asrpc"
 	"github.com/dancodery/algorand-state-channels/payment"
+	"github.com/dancodery/algorand-state-channels/payment/testing"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -27,10 +32,55 @@ func newRpcServer(s *server) *rpcServer {
 	}
 }
 
+func (r *rpcServer) Reset(ctx context.Context, in *asrpc.ResetRequest) (*asrpc.ResetResponse, error) {
+	timestamp_start := timestamppb.Now()
+
+	r.server.payment_channels_onchain_states = make(map[string]paymentChannelInfo)
+	r.server.payment_channels_offchain_states_log = make(map[string]map[int64]paymentChannelOffChainState)
+	r.server.algod_client = testing.GetAlgodClient()
+
+	// new: generate account from seed
+	seed_phrase := os.Getenv("SEED_PHRASE")
+
+	if seed_phrase == "" {
+		r.server.algo_account = crypto.GenerateAccount()
+	} else {
+		private_key, err := mnemonic.ToPrivateKey(seed_phrase)
+		if err != nil {
+			log.Fatalf("failed to generate account from seed: %v\n", err)
+			return nil, err
+		}
+		r.server.algo_account, err = crypto.AccountFromPrivateKey(private_key)
+		if err != nil {
+			log.Fatalf("failed to generate account from seed: %v\n", err)
+			return nil, err
+		}
+	}
+
+	fmt.Printf("My node ALGO address is: %v\n", r.server.algo_account.Address.String())
+
+	// fund account
+	testing.FundAccount(r.server.algod_client, r.server.algo_account.Address.String(), 10_000_000_000)
+
+	timestamp_end := timestamppb.Now()
+
+	runtime_recording := &asrpc.RuntimeRecording{
+		TimestampStart: timestamp_start,
+		TimestampEnd:   timestamp_end,
+	}
+	return &asrpc.ResetResponse{
+		RuntimeRecording: runtime_recording,
+	}, nil
+}
+
 func (r *rpcServer) GetInfo(ctx context.Context, in *asrpc.GetInfoRequest) (*asrpc.GetInfoResponse, error) {
 	timestamp_start := timestamppb.Now()
 
 	algo_address := r.server.algo_account.Address.String()
+	algo_balance, err := r.server.getAlgoBalance(algo_address)
+	if err != nil {
+		return nil, err
+	}
 
 	timestamp_end := timestamppb.Now()
 
@@ -41,6 +91,7 @@ func (r *rpcServer) GetInfo(ctx context.Context, in *asrpc.GetInfoRequest) (*asr
 
 	return &asrpc.GetInfoResponse{
 		AlgoAddress:      algo_address,
+		AlgoBalance:      algo_balance,
 		RuntimeRecording: runtime_recording,
 	}, nil
 }
@@ -63,7 +114,7 @@ func (r *rpcServer) OpenChannel(ctx context.Context, in *asrpc.OpenChannelReques
 		r.server.algo_account,
 		in.FundingAmount)
 
-	fmt.Printf("Created payment channel app with appID: %v and funding amount: %v\n", appID, in.FundingAmount)
+	fmt.Printf("\nCreated payment channel app with app_id: %v and funding amount: %v\n", appID, in.FundingAmount)
 
 	// 3. send notification to partner node
 	partner_response, err := sendRequest(in.PartnerNode.Host, P2PRequest{Command: "open_channel_request", Args: [][]byte{[]byte(strconv.Itoa(int(appID)))}})
@@ -287,6 +338,8 @@ func (r *rpcServer) InitiateCloseChannel(ctx context.Context, in *asrpc.Initiate
 		latestOffChainState.alice_signature,
 		latestOffChainState.bob_signature)
 
+	fmt.Printf("Initiated channel closure for app_id: %v\n\n", onchain_state.app_id)
+
 	timestamp_end := timestamppb.Now()
 
 	runtime_recording := &asrpc.RuntimeRecording{
@@ -312,7 +365,9 @@ func (r *rpcServer) FinalizeCloseChannel(ctx context.Context, in *asrpc.Finalize
 	payment.FinalizeCloseChannel(
 		r.server.algod_client,
 		r.server.algo_account,
+		onchain_state.bob_address,
 		onchain_state.app_id)
+	fmt.Printf("Finalized channel closure for app_id: %v\n\n", onchain_state.app_id)
 
 	timestamp_end := timestamppb.Now()
 
