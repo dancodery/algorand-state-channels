@@ -2,15 +2,15 @@
 txn ApplicationID
 int 0
 ==
-bnz main_l24
+bnz main_l26
 txn OnCompletion
 int UpdateApplication
 ==
-bnz main_l23
+bnz main_l25
 txn OnCompletion
 int CloseOut
 ==
-bnz main_l22
+bnz main_l24
 txn OnCompletion
 int NoOp
 ==
@@ -27,21 +27,60 @@ main_l7:
 txna ApplicationArgs 0
 byte "fund"
 ==
-bnz main_l21
-txna ApplicationArgs 0
-byte "transact"
-==
-bnz main_l16
+bnz main_l23
 txna ApplicationArgs 0
 byte "increaseBudget"
 ==
-bnz main_l15
+bnz main_l22
 txna ApplicationArgs 0
-byte "loadState"
+byte "initiateChannelClosing"
 ==
-bnz main_l12
+bnz main_l19
+txna ApplicationArgs 0
+byte "raiseDispute"
+==
+bnz main_l16
+txna ApplicationArgs 0
+byte "finalizeChannelClosing"
+==
+bnz main_l13
 err
-main_l12:
+main_l13:
+global Round
+byte "timeout"
+app_global_get
+>
+bnz main_l15
+main_l14:
+int 1
+return
+main_l15:
+itxn_begin
+int pay
+itxn_field TypeEnum
+byte "latest_alice_balance"
+app_global_get
+global MinTxnFee
+-
+itxn_field Amount
+byte "alice_address"
+app_global_get
+itxn_field Receiver
+itxn_submit
+itxn_begin
+int pay
+itxn_field TypeEnum
+byte "latest_bob_balance"
+app_global_get
+global MinTxnFee
+-
+itxn_field Amount
+byte "bob_address"
+app_global_get
+itxn_field Receiver
+itxn_submit
+b main_l14
+main_l16:
 txna ApplicationArgs 1
 byte ","
 concat
@@ -100,11 +139,96 @@ byte "total_deposit"
 app_global_get
 ==
 &&
-bnz main_l14
-main_l13:
+byte "latest_timestamp"
+btoi
+txna ApplicationArgs 4
+btoi
+<
+&&
+bnz main_l18
+main_l17:
 int 1
 return
-main_l14:
+main_l18:
+byte "latest_bob_balance"
+txna ApplicationArgs 3
+btoi
+app_global_put
+b main_l17
+main_l19:
+txn Sender
+byte "alice_address"
+app_global_get
+==
+txn Sender
+byte "bob_address"
+app_global_get
+==
+||
+assert
+txna ApplicationArgs 1
+byte ","
+concat
+byte "app_id"
+app_global_get
+itob
+concat
+byte ","
+concat
+txna ApplicationArgs 2
+concat
+byte ","
+concat
+txna ApplicationArgs 3
+concat
+byte ","
+concat
+txna ApplicationArgs 4
+concat
+sha3_256
+txna ApplicationArgs 5
+byte "alice_address"
+app_global_get
+ed25519verify_bare
+txna ApplicationArgs 1
+byte ","
+concat
+byte "app_id"
+app_global_get
+itob
+concat
+byte ","
+concat
+txna ApplicationArgs 2
+concat
+byte ","
+concat
+txna ApplicationArgs 3
+concat
+byte ","
+concat
+txna ApplicationArgs 4
+concat
+sha3_256
+txna ApplicationArgs 6
+byte "bob_address"
+app_global_get
+ed25519verify_bare
+&&
+txna ApplicationArgs 2
+btoi
+txna ApplicationArgs 3
+btoi
++
+byte "total_deposit"
+app_global_get
+==
+&&
+bnz main_l21
+main_l20:
+int 1
+return
+main_l21:
 byte "timeout"
 global Round
 byte "dispute_window"
@@ -123,86 +247,11 @@ byte "latest_bob_balance"
 txna ApplicationArgs 3
 btoi
 app_global_put
-b main_l13
-main_l15:
+b main_l20
+main_l22:
 int 1
 return
-main_l16:
-txn Sender
-byte "alice_address"
-app_global_get
-==
-txn Sender
-byte "bob_address"
-app_global_get
-==
-||
-assert
-txn Sender
-byte "alice_address"
-app_global_get
-==
-bnz main_l20
-txn Sender
-byte "bob_address"
-app_global_get
-==
-bnz main_l19
-int 1
-return
-main_l19:
-byte "latest_bob_balance"
-app_global_get
-txna ApplicationArgs 1
-btoi
--
-byte "penalty_reserve"
-app_global_get
->=
-assert
-byte "latest_bob_balance"
-byte "latest_bob_balance"
-app_global_get
-txna ApplicationArgs 1
-btoi
--
-app_global_put
-byte "latest_alice_balance"
-byte "latest_alice_balance"
-app_global_get
-txna ApplicationArgs 1
-btoi
-+
-app_global_put
-int 1
-return
-main_l20:
-byte "latest_alice_balance"
-app_global_get
-txna ApplicationArgs 1
-btoi
--
-byte "penalty_reserve"
-app_global_get
->=
-assert
-byte "latest_alice_balance"
-byte "latest_alice_balance"
-app_global_get
-txna ApplicationArgs 1
-btoi
--
-app_global_put
-byte "latest_bob_balance"
-byte "latest_bob_balance"
-app_global_get
-txna ApplicationArgs 1
-btoi
-+
-app_global_put
-int 1
-return
-main_l21:
+main_l23:
 txn GroupIndex
 int 1
 -
@@ -256,13 +305,13 @@ gtxns Amount
 app_global_put
 int 1
 return
-main_l22:
-int 0
-return
-main_l23:
-int 0
-return
 main_l24:
+int 0
+return
+main_l25:
+int 0
+return
+main_l26:
 txn NumAppArgs
 int 3
 ==

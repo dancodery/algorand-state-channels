@@ -76,7 +76,8 @@ def approval_program():
 
 	# Initialization
 	on_create = Seq(
-		# The arguments contain bob address, and penalty reserve
+		# can be called by anyone
+		#
 		Assert(Txn.application_args.length() == Int(3)),
 		# Set alice to sender of initial tx
 		App.globalPut(app_id, Global.current_application_id()),
@@ -86,26 +87,11 @@ def approval_program():
 		App.globalPut(dispute_window, Btoi(Txn.application_args[2])),
 		Approve()
 	)
-
-	# on_register_public_key = Seq(
-	#     Assert(
-	#         Or(
-	#             Txn.sender() == App.globalGet(alice_address)),
-	#             Txn.sender() == App.globalGet(bob_address),
-	#     ),
-
-	#     If(Txn.sender() == App.globalGet(alice_address)).Then(
-	#         App.globalPut(alice_pubkey, Txn.application_args[0])
-	#     ),
-	#     If(Txn.sender() == App.globalGet(bob_address)).Then(
-	#         App.globalPut(bob_pubkey, Txn.application_args[0])
-	#     ),
-	#     Approve(),
-	# )
  
 	# funds the smart contract with the amount sent in the first transaction of the group
 	funding_txn_index = Txn.group_index() - Int(1)
 	on_funding = Seq(
+		# can only be called by alice
 		Assert(
 			And(
 				Gtxn[funding_txn_index].sender() == Txn.sender(),
@@ -122,21 +108,22 @@ def approval_program():
 	)
 
 	# transacts amount of funds from one party to the other
-	amount = Btoi(Txn.application_args[1])
-	on_transacting = Seq(
-		Assert(Or(Txn.sender() == App.globalGet(alice_address),
-				  Txn.sender() == App.globalGet(bob_address))),
-		If(Txn.sender() == App.globalGet(alice_address)).Then(
-			rebalance(latest_alice_balance, latest_bob_balance, amount)
-		),
+	# amount = Btoi(Txn.application_args[1])
+	# on_transacting = Seq(
+	# 	Assert(Or(Txn.sender() == App.globalGet(alice_address),
+	# 			  Txn.sender() == App.globalGet(bob_address))),
+	# 	If(Txn.sender() == App.globalGet(alice_address)).Then(
+	# 		rebalance(latest_alice_balance, latest_bob_balance, amount)
+	# 	),
 
-		If(Txn.sender() == App.globalGet(bob_address)).Then(
-			rebalance(latest_bob_balance, latest_alice_balance, amount)
-		),
-		Approve(),
-	)
+	# 	If(Txn.sender() == App.globalGet(bob_address)).Then(
+	# 		rebalance(latest_bob_balance, latest_alice_balance, amount)
+	# 	),
+	# 	Approve(),
+	# )
 
 	on_increaseBudget = Seq(
+		# can be called by anyone
 		Approve(),
 	)
 
@@ -158,9 +145,14 @@ def approval_program():
 				Bytes(","),
 				timestamp
 			)) # in bytes "alice_balance, bob_balance"
-	on_loadState = Seq(
-		# load the signed state
-		# can be called by anyone
+	on_initiateChannelClosing = Seq(
+		# can only be called by alice or bob
+		Assert(
+			Or(
+				Txn.sender() == App.globalGet(alice_address),
+				Txn.sender() == App.globalGet(bob_address)
+			)
+		),
 		If (And(
 				# https://pyteal.readthedocs.io/en/stable/crypto.html
 				Ed25519Verify_Bare(	# cost: 1900, takes 3 arguments: data, sig 64 bytes, key 32 bytes
@@ -176,46 +168,51 @@ def approval_program():
 				Btoi(alice_balance) + Btoi(bob_balance) == App.globalGet(total_deposit),
 			)
 		).Then(
-			App.globalPut(timeout, Global.round() + App.globalGet(dispute_window)),			# set timeout
+			App.globalPut(timeout, Global.round() + App.globalGet(dispute_window)),		# set timeout
 			App.globalPut(latest_state_timestamp, Btoi(timestamp)), 					# store state timestamp
 			App.globalPut(latest_alice_balance, Btoi(alice_balance)),					# store latest balances of alice
 			App.globalPut(latest_bob_balance, Btoi(bob_balance)),						# store latest balances of bob
+		),
+		Approve(),
+	)
+
+	algorand_port = Txn.application_args[1]
+	alice_balance = Txn.application_args[2]
+	bob_balance = Txn.application_args[3]
+	timestamp = Txn.application_args[4]
+	alice_signature = Txn.application_args[5] # 64 bytes
+	bob_signature = Txn.application_args[6] # 64 bytes
+	on_raiseDispute = Seq(
+		If (And(
+				# https://pyteal.readthedocs.io/en/stable/crypto.html
+				Ed25519Verify_Bare(	# cost: 1900, takes 3 arguments: data, sig 64 bytes, key 32 bytes
+					hash,
+					alice_signature, # signature
+					App.globalGet(alice_address), # has to be comitted on chain
+				),
+				Ed25519Verify_Bare(
+					hash,
+					bob_signature,
+					App.globalGet(bob_address),
+				),
+				Btoi(alice_balance) + Btoi(bob_balance) == App.globalGet(total_deposit),
+				Btoi(latest_state_timestamp) < Btoi(timestamp),
+			)
+		).Then(
+		# 	# App.globalPut(latest_state_timestamp, Btoi(timestamp)), 						# store state timestamp
+		# 	# App.globalPut(timeout, Global.round() + App.globalGet(dispute_window)),			# set timeout
+		# 	# App.globalPut(latest_alice_balance, Btoi(alice_balance)),				# store latest balances of alice
+			App.globalPut(latest_bob_balance, Btoi(bob_balance)),					# store latest balances of bob
+
+
 		),
 		Approve(),  
 	)
 
 
-	on_raiseDispute = Seq(
-
-		# If (And(
-		# 		# https://pyteal.readthedocs.io/en/stable/crypto.html
-		# 		Ed25519Verify_Bare(	# cost: 1900, takes 3 arguments: data, sig 64 bytes, key 32 bytes
-		# 			hash,
-		# 			alice_signature, # signature
-		# 			App.globalGet(alice_address), # has to be comitted on chain
-		# 		),
-		# 		Ed25519Verify_Bare(
-		# 			hash,
-		# 			bob_signature,
-		# 			App.globalGet(bob_address),
-		# 		),
-		# 		Btoi(alice_balance) + Btoi(bob_balance) == App.globalGet(total_deposit),
-		# 		latest_state_timestamp >= Btoi(timestamp),
-		# 	)
-		# ).Then(
-		# 	# App.globalPut(latest_state_timestamp, Btoi(timestamp)), 						# store state timestamp
-		# 	# App.globalPut(timeout, Global.round() + App.globalGet(dispute_window)),			# set timeout
-		# 	# App.globalPut(latest_alice_balance, Btoi(alice_balance)),				# store latest balances of alice
-		# 	App.globalPut(latest_bob_balance, Btoi(bob_balance)),					# store latest balances of bob
-
-
-		# ),
-		Approve(),  
-	)
-
-	on_closeChannel = Seq(
-		Assert(Global.round() > App.globalGet(timeout)),
-
+	on_finalizeChannelClosing = Seq(
+		# can be called by anyone
+		# 
 		If (Global.round() > App.globalGet(timeout)).Then(
 			# timeout has passed
 			# send funds to alice
@@ -223,7 +220,7 @@ def approval_program():
 			InnerTxnBuilder.SetFields(
 				{
 					TxnField.type_enum: TxnType.Payment,
-					TxnField.amount: App.globalGet(latest_alice_balance), # - Global.min_txn_fee(),
+					TxnField.amount: App.globalGet(latest_alice_balance) - Global.min_txn_fee(),
 					TxnField.receiver: App.globalGet(alice_address),
 				}
 			),
@@ -233,7 +230,7 @@ def approval_program():
 			InnerTxnBuilder.SetFields(
 				{
 					TxnField.type_enum: TxnType.Payment,
-					TxnField.amount: App.globalGet(latest_bob_balance), # - Global.min_txn_fee(),
+					TxnField.amount: App.globalGet(latest_bob_balance) - Global.min_txn_fee(),
 					TxnField.receiver: App.globalGet(bob_address),
 				}
 			),
@@ -249,9 +246,14 @@ def approval_program():
 	on_call = Seq(
 		Cond(
 			[on_call_method == Bytes("fund"), on_funding],
-			[on_call_method == Bytes("transact"), on_transacting],
+			# [on_call_method == Bytes("transact"), on_transacting],
 			[on_call_method == Bytes("increaseBudget"), on_increaseBudget],
-			[on_call_method == Bytes("loadState"), on_loadState],
+			[on_call_method == Bytes("initiateChannelClosing"), on_initiateChannelClosing],
+			[on_call_method == Bytes("raiseDispute"), on_raiseDispute],
+			[on_call_method == Bytes("finalizeChannelClosing"), on_finalizeChannelClosing],
+			# [on_call_method == Bytes("updateState"), on_updateState],
+			# [on_call_method == Bytes("updateStateWithTimeout"), on_updateStateWithTimeout],
+
 		)
 	)
 
