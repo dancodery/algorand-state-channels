@@ -58,11 +58,12 @@ if [ -z "$CONFIG_FILE" ]; then
 fi
 source "$CONFIG_FILE"
 
-# echo "Configuration values:"
+echo "Configuration values:"
+echo "dispute_window=$dispute_window"
 # echo "runs=$runs"
 # echo "port=$port"
 # echo "outfile=$outfile"
-# echo
+echo
 
 ### Start the demo ###
 echo "Starting the demo..."
@@ -83,7 +84,7 @@ echo "Bob's address: ${bob_address}"
 # Alice: open a channel with Bob
 echo 
 echo "Alice opening a channel with Bob..."
-run-in-node asc-alice "ascli openchannel --partner_ip=asc-bob --partner_address=${bob_address} --funding_amount=2_000_000_000 --penalty_reserve=100_000 --dispute_window=1000"
+run-in-node asc-alice "ascli openchannel --partner_ip=asc-bob --partner_address=${bob_address} --funding_amount=2_000_000_000 --penalty_reserve=100_000 --dispute_window=${dispute_window}"
 
 # Alice pays to Bob 100 microAlgos
 echo
@@ -95,7 +96,17 @@ echo
 echo "Alice paying Bob 100 microAlgos..."
 run-in-node asc-alice "ascli pay --partner_address=${bob_address} --amount=100"
 
-# Close the channel
+# Initiate closing the channel
 echo
-echo "Alice closing the channel..."
-run-in-node asc-alice "ascli closechannel --partner_address=${bob_address}"
+echo "Alice initiating channel closing..."
+run-in-node asc-alice "ascli initiateclosechannel --partner_address=${bob_address}"
+
+# sleep for dispute_window * block_time
+echo
+echo "Waiting for dispute window to expire: ${dispute_window} * 4 seconds..."
+sleep $(echo "${dispute_window} * 4" | bc)
+
+# # Finalize closing the channel
+# echo
+# echo "Alice finalizing channel closing..."
+# run-in-node asc-alice "ascli finalizeclosechannel --partner_address=${bob_address}"
