@@ -115,15 +115,15 @@ func FundAccount(algodClient *algod.Client, recipient string, amount uint64) {
 	}
 
 	// submit the transaction
-	_, err = algodClient.SendRawTransaction(signed_payment_transaction).Do(context.Background())
+	pendingTransactionID, err := algodClient.SendRawTransaction(signed_payment_transaction).Do(context.Background())
 	if err != nil {
 		log.Fatalf("error sending transaction: %s\n", err)
 	}
 
-	// // wait for confirmation
-	// confirmedTxn, err := transaction.WaitForConfirmation(algodClient, pendingTransactionID, 4, context.Background())
-	// if err != nil {
-	// 	log.Fatalf("error confirming transaction: %s\n", err)
-	// 	return
-	// }
+	// wait for confirmation
+	_, err = transaction.WaitForConfirmation(algodClient, pendingTransactionID, 4, context.Background())
+	if err != nil {
+		log.Fatalf("error confirming transaction: %s\n", err)
+		return
+	}
 }
