@@ -17,7 +17,6 @@ RUN go mod download
 # copy only necessary files to improve caching
 COPY    cmd/ascli/ ./cmd/ascli/
 COPY    cmd/ascli/ $GOPATH/src/github.com/dancodery/algorand-state-channels/cmd/ascli/
-COPY    cmd/asd/ $GOPATH/src/github.com/dancodery/algorand-state-channels/cmd/asd/
 COPY    asrpc/ $GOPATH/src/github.com/dancodery/algorand-state-channels/asrpc/
 COPY    payment/ $GOPATH/src/github.com/dancodery/algorand-state-channels/payment/
 COPY    payment/testing/ $GOPATH/src/github.com/dancodery/algorand-state-channels/payment/testing/
