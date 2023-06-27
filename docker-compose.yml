@@ -88,8 +88,8 @@ services:
       - payment-channel
     expose:
       - "28547"
-    environment:
-      SEED_PHRASE: "auction palm thumb shuffle aim fade cover glass fire spawn course harbor moon decline shed shop envelope virtual visa attitude hand december portion abstract labor"
+    # environment:
+      # SEED_PHRASE: "auction palm thumb shuffle aim fade cover glass fire spawn course harbor moon decline shed shop envelope virtual visa attitude hand december portion abstract labor"
 
   asc-bob:
     container_name: "asc-bob"
@@ -99,5 +99,5 @@ services:
       - payment-channel
     expose:
       - "28547"
-    environment:
-      SEED_PHRASE: "prize struggle destroy tray harvest wear century length thought diagram rubber page bridge weasel same ocean team index skin volume witness record cinnamon able machine"
+    # environment:
+    #   SEED_PHRASE: "prize struggle destroy tray harvest wear century length thought diagram rubber page bridge weasel same ocean team index skin volume witness record cinnamon able machine"
