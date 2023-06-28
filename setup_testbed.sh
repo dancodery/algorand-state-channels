@@ -20,7 +20,7 @@ for ((i=0; i<${#args[@]}; i++)); do
     pos nodes reset ${args[i]}
 
     echo "Launching commands on node ${args[i]}"
-    pos commands launch ${args[i]} "echo $(hostname)"
+    pos commands launch ${args[i]} "echo \$(hostname)"
 done
 
 
