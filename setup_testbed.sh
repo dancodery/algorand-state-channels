@@ -19,7 +19,10 @@ done
 # 3. Allocate nodes
 echo "Allocating nodes ${args[@]}..."
 allocate_output=$(pos allocations allocate "${args[@]}")
-# echo "$allocate_output"
+echo
+echo "$allocate_output"
+echo
+sleep 1
 allocation_id=$(echo "$allocate_output" | awk '{print $3}')
 result_directory=$(echo "$allocate_output" | awk '/Results in/ {print $NF}')
 echo "Allocation ID: $allocation_id"
@@ -37,8 +40,8 @@ for ((i=0; i<${#args[@]}; i++)); do
     pos nodes reset ${args[i]}
 
     # copy files to node
-    echo "Copying files to node ${args[i]}..."
-    pos nodes copy ${args[i]} --recursive --from ./files --to /root
+    echo "Copying files to node ${args[i]}..."    
+    pos nodes copy --recursive --to /root ${args[i]} /home/gockel/algorand-state-channels
 
     # launch commands
     echo "Launching commands on node ${args[i]}"
