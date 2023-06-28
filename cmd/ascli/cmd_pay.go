@@ -53,7 +53,7 @@ func pay(ctx *cli.Context) error {
 		return err
 	}
 
-	fmt.Println(payResponse)
+	fmt.Println("Response from gRPC server: ", payResponse)
 
 	return nil
 }

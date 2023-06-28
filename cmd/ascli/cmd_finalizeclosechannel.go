@@ -43,7 +43,7 @@ func finalizeChannelClosing(ctx *cli.Context) error {
 		return err
 	}
 
-	fmt.Println(finalize_close_channel_response)
+	fmt.Println("Response from gRPC server: ", finalize_close_channel_response)
 
 	return nil
 }
