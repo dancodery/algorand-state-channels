@@ -57,7 +57,7 @@ func (r *rpcServer) Reset(ctx context.Context, in *asrpc.ResetRequest) (*asrpc.R
 		}
 	}
 
-	fmt.Printf("Reset executed\n")
+	fmt.Printf("\nReset executed\n")
 	fmt.Printf("My node ALGO address is: %v\n", r.server.algo_account.Address.String())
 
 	// fund account

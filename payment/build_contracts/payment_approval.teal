@@ -58,6 +58,8 @@ main_l15:
 itxn_begin
 int pay
 itxn_field TypeEnum
+global CurrentApplicationAddress
+itxn_field Sender
 byte "latest_alice_balance"
 app_global_get
 global MinTxnFee
@@ -66,10 +68,11 @@ itxn_field Amount
 byte "alice_address"
 app_global_get
 itxn_field Receiver
-itxn_submit
-itxn_begin
+itxn_next
 int pay
 itxn_field TypeEnum
+global CurrentApplicationAddress
+itxn_field Sender
 byte "latest_bob_balance"
 app_global_get
 global MinTxnFee
@@ -84,8 +87,7 @@ main_l16:
 txna ApplicationArgs 1
 byte ","
 concat
-byte "app_id"
-app_global_get
+global CurrentApplicationID
 itob
 concat
 byte ","
@@ -108,8 +110,7 @@ ed25519verify_bare
 txna ApplicationArgs 1
 byte ","
 concat
-byte "app_id"
-app_global_get
+global CurrentApplicationID
 itob
 concat
 byte ","
@@ -169,8 +170,7 @@ assert
 txna ApplicationArgs 1
 byte ","
 concat
-byte "app_id"
-app_global_get
+global CurrentApplicationID
 itob
 concat
 byte ","
@@ -193,8 +193,7 @@ ed25519verify_bare
 txna ApplicationArgs 1
 byte ","
 concat
-byte "app_id"
-app_global_get
+global CurrentApplicationID
 itob
 concat
 byte ","
@@ -316,9 +315,6 @@ txn NumAppArgs
 int 3
 ==
 assert
-byte "app_id"
-global CurrentApplicationID
-app_global_put
 byte "alice_address"
 txn Sender
 app_global_put

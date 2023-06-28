@@ -417,7 +417,7 @@ func (s *server) doOpenChannelSecurityChecks(blockchain_app_info models.Applicat
 		return false
 	}
 	penalty_reserve := parseInt(string(penalty_value))
-	min_penalty_reserve := 10_000
+	min_penalty_reserve := 100
 	max_penalty_reserve := 100_000_000
 	penalty_reserve_check := penalty_reserve >= min_penalty_reserve && penalty_reserve <= max_penalty_reserve
 	if !penalty_reserve_check {
