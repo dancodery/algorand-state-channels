@@ -1,25 +1,35 @@
 #!/bin/bash
 
+# print out executed commands
+set -x
+
+# stop program in case of error
+set -e
+
 
 # 1. Read node arguments into an array
 args=("$@")
 
-# 2. Allocate nodes
+# 2. Free hosts
+for ((i=0; i<${#args[@]}; i++)); do
+    echo "Freeing node ${args[i]}..."
+    pos allocations free -k ${args[i]}
+done
+
+# 3. Allocate nodes
 echo "Allocating nodes ${args[@]}..."
 pos allocations allocate ${args[@]}
 
-# 3. Configure nodes individually
+# 4. Configure nodes individually
 for ((i=0; i<${#args[@]}; i++)); do
     echo "Configuring node ${args[i]}..."
     pos nodes image ${args[i]} debian-bullseye
 
     echo "Reset node ${args[i]}..."
-    pos nodes reset ${args[i]} --non-blocking
+    pos nodes reset ${args[i]}
 
     echo "Launching commands on node ${args[i]}"
     pos commands launch ${args[i]} -- echo "$(hostname)"
 done
 
-# 4. Wait for nodes to be ready
-echo "Waiting for nodes to be ready..."
-sleep 10
+# results dir: /srv/testbed/results/gockel/default
