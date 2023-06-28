@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # print out executed commands
-set -x
+# set -x
 
 # stop program in case of error
 set -e
