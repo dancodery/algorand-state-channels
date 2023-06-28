@@ -140,6 +140,9 @@ func (s *server) startListening() error {
 func (s *server) handleConnection(conn net.Conn) {
 	defer conn.Close()
 
+	// Get the IP address of the connection partner
+	partner_ip := conn.RemoteAddr().(*net.TCPAddr).IP.String()
+
 	client_request_data := make([]byte, 2<<10) // 2KB
 	n, err := conn.Read(client_request_data)
 	if err != nil {
@@ -179,12 +182,13 @@ func (s *server) handleConnection(conn net.Conn) {
 		}
 
 		// save the new payment channel state
-		s.savePaymentChannelOnChainState(app_id, blockchain_app_info.Params.GlobalState)
+		s.savePaymentChannelOnChainState(partner_ip, app_id, blockchain_app_info.Params.GlobalState)
 
 		fmt.Printf("\nThe payment channel with app_id %d was opened successfully.\n", app_id)
 
 		// print s.payment_channels_onchain_states
-		fmt.Println("payment_channels_onchain_states: ", s.payment_channels_onchain_states)
+		fmt.Printf("All Current Payment Channels: %+v\n\n", s.payment_channels_onchain_states)
+
 		server_response.Message = "approve"
 
 	case "pay_request":
@@ -308,6 +312,10 @@ func (s *server) handleConnection(conn net.Conn) {
 		server_response.Data = [][]byte{
 			my_signature,
 		}
+
+		fmt.Printf("Process payment_request of %d microalgos\n", counterparty_balance_diff)
+		fmt.Printf("Alice new balance: %d\n", alice_new_balance)
+		fmt.Printf("Bob new balance: %d\n\n", bob_new_balance)
 
 	case "close_channel":
 		fmt.Println("close_channel")
@@ -445,9 +453,10 @@ func GetValueOfGlobalState(global_state []models.TealKeyValue, key string) []byt
 	return nil
 }
 
-func (s *server) savePaymentChannelOnChainState(appID uint64, global_state []models.TealKeyValue) {
+func (s *server) savePaymentChannelOnChainState(partner_ip string, appID uint64, global_state []models.TealKeyValue) {
 	onchain_state := &paymentChannelInfo{
-		app_id: appID,
+		partner_ip: partner_ip,
+		app_id:     appID,
 	}
 
 	for _, teal_key_value := range global_state {
