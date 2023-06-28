@@ -7,18 +7,15 @@ FILENAME = "payment"
 
 
 def approval_program():
-	app_id = Bytes("app_id")						# uint: stores the app_id of the smart contract
-													# , needed for protecting against replay attacks
-
 	alice_address = Bytes("alice_address")			# byte_slice: creator and funder of the smart contract												
 	bob_address = Bytes("bob_address")				# byte_slice: counterparty
 	
 	timeout = Bytes("timeout")              		# uint: part of general state; value fixed during execution
 
-	latest_state_timestamp = Bytes("latest_timestamp")			# uint: part of general state; when the latest transaction was signed by alice and bob
-	total_deposit = Bytes("total_deposit")						# uint: part of application specific state; value set by funding transaction
 	latest_alice_balance = Bytes("latest_alice_balance")      	# uint: part of application specific state; value variable during execution
 	latest_bob_balance = Bytes("latest_bob_balance")          	# uint: part of application specific state; value variable during execution
+	latest_state_timestamp = Bytes("latest_timestamp")			# uint: part of general state; when the latest transaction was signed by alice and bob
+	total_deposit = Bytes("total_deposit")						# uint: part of application specific state; value set by funding transaction
 
 	penalty_reserve = Bytes("penalty_reserve")					# uint: used to penalize expired transaction commitments
 	dispute_window = Bytes("dispute_window")					# uint: window in which a dispute can be raised
@@ -80,7 +77,6 @@ def approval_program():
 		#
 		Assert(Txn.application_args.length() == Int(3)),
 		# Set alice to sender of initial tx
-		App.globalPut(app_id, Global.current_application_id()),
 		App.globalPut(alice_address, Txn.sender()),
 		App.globalPut(bob_address, Txn.application_args[0]),
 		App.globalPut(penalty_reserve, Btoi(Txn.application_args[1])),
@@ -137,7 +133,7 @@ def approval_program():
 			Concat(
 				algorand_port,
 				Bytes(","),
-				Itob(App.globalGet(app_id)),
+				Itob(Global.current_application_id()),
 				Bytes(","),
 				alice_balance, 
 				Bytes(","),
@@ -220,16 +216,18 @@ def approval_program():
 			InnerTxnBuilder.SetFields(
 				{
 					TxnField.type_enum: TxnType.Payment,
+					TxnField.sender: Global.current_application_address(),
 					TxnField.amount: App.globalGet(latest_alice_balance) - Global.min_txn_fee(),
 					TxnField.receiver: App.globalGet(alice_address),
 				}
 			),
-			InnerTxnBuilder.Submit(),
+			InnerTxnBuilder.Next(),
 
-			InnerTxnBuilder.Begin(),
+			# send funds to bob
 			InnerTxnBuilder.SetFields(
 				{
 					TxnField.type_enum: TxnType.Payment,
+					TxnField.sender: Global.current_application_address(),
 					TxnField.amount: App.globalGet(latest_bob_balance) - Global.min_txn_fee(),
 					TxnField.receiver: App.globalGet(bob_address),
 				}
