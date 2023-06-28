@@ -30,6 +30,13 @@ for ((i=0; i<${#args[@]}; i++)); do
 
     echo "Launching commands on node ${args[i]}"
     pos commands launch ${args[i]} -- echo "$(hostname)"
+
+    echo 
 done
+
+# 5. Print result folder
+allocation_id=$(pos allocations list | grep "gockel" | awk '{ print $1 }')
+echo "Allocation ID: $allocation_id"
+
 
 # results dir: /srv/testbed/results/gockel/default
