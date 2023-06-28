@@ -6,9 +6,12 @@ args=("$@")
 
 # 2. Allocate nodes
 for ((i=0; i<${#args[@]}; i++)); do
-    echo "Allocating node ${args[i]}"
+    echo 
+    echo "Freeing node ${args[i]}..."
+    pos allocations free ${args[i]}
+    
+    echo "Allocating node ${args[i]}..."
     pos allocations allocate ${args[i]}
-    echo "Done"
 
     echo "Configuring node ${args[i]}"
     pos nodes image ${args[i]} debian-bullseye
