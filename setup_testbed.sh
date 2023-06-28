@@ -19,7 +19,7 @@ done
 # 3. Allocate nodes
 echo "Allocating nodes ${args[@]}..."
 allocate_output=$(pos allocations allocate "${args[@]}")
-echo "$allocate_output"
+# echo "$allocate_output"
 allocation_id=$(echo "$allocate_output" | awk '{print $3}')
 result_directory=$(echo "$allocate_output" | awk '/Results in/ {print $NF}')
 echo "Allocation ID: $allocation_id"
