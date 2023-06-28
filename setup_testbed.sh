@@ -23,33 +23,42 @@ echo
 echo "$allocate_output"
 echo
 sleep 1
-allocation_id=$(echo "$allocate_output" | awk '/Allocation ID:/ {print $NF}')
+
+# 4. Save variables
+allocation_id=$(echo "$allocate_output" | awk -F ': ' '/Allocation ID:/ {gsub(/[()]/,"",$2); print $2}')
 result_directory=$(echo "$allocate_output" | awk '/Results in/ {print $NF}')
 echo "Allocation ID: $allocation_id"
 echo "Result Directory: $result_directory"
 echo
 
-# 4. Configure nodes individually
+# 5. Load images for nodes individually
 for ((i=0; i<${#args[@]}; i++)); do
     # load image
-    echo "Configuring node ${args[i]}..."
+    echo "Loading image for node ${args[i]}..."
     pos nodes image ${args[i]} debian-bullseye
 
     # reset node and reboot
     echo "Reset node ${args[i]}..."
-    pos nodes reset ${args[i]}
+    pos nodes reset --non-blocking ${args[i]} 
 
-    # copy files to node
-    echo "Copying files to node ${args[i]}..."    
+    echo
+done
+
+# 6. Wait for nodes to be ready, so that they can reboot in parallel
+echo "Waiting for nodes to be ready..."
+sleep 10
+echo
+
+for ((i=0; i<${#args[@]}; i++)); do
+    # 7. Copy files to nodes
+    echo "Copying files to node ${args[i]}..."
     pos nodes copy --recursive --dest /root ${args[i]} /home/gockel/algorand-state-channels
 
-    # launch commands
-    echo "Launching commands on node ${args[i]}"
+    # 8. Run commands on nodes
+    echo "Running commands on node ${args[i]}..."
     pos commands launch ${args[i]} -- echo "$(hostname)"
-
-    echo 
+    pos commands launch ${args[i]} -- /bin/bash -c "cd /root/algorand-state-channels && ./setup.sh"
 done
 
 
-
-# results dir: /srv/testbed/results/gockel/default
+echo 
