@@ -4,6 +4,8 @@
 # 1. Read node arguments into an array
 args=("$@")
 
+echo "${args[@]}"
+
 # 2. Allocate nodes
 for ((i=0; i<${#args[@]}; i++)); do
     echo 
