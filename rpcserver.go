@@ -203,17 +203,39 @@ func (r *rpcServer) Pay(ctx context.Context, in *asrpc.PayRequest) (*asrpc.PayRe
 		fmt.Printf("Error: %v\n", err)
 		return nil, err
 	}
-	alice_balance := latestOffChainState.alice_balance
-	bob_balance := latestOffChainState.bob_balance
+
+	var me_alice bool
+	var my_balance uint64
+	var counterparty_balance uint64
+	if onchain_state.alice_address == r.server.algo_account.Address.String() {
+		me_alice = true
+		my_balance = latestOffChainState.alice_balance
+		counterparty_balance = latestOffChainState.bob_balance
+	} else {
+		me_alice = false
+		my_balance = latestOffChainState.bob_balance
+		counterparty_balance = latestOffChainState.alice_balance
+	}
 
 	// 3. calculate new balances
-	new_alice_balance := alice_balance - in.Amount
-	new_bob_balance := bob_balance + in.Amount
+	new_my_balance := my_balance - in.Amount
+	new_counterparty_balance := counterparty_balance + in.Amount
+
+	var new_alice_balance uint64
+	var new_bob_balance uint64
+	if me_alice {
+		new_alice_balance = new_my_balance
+		new_bob_balance = new_counterparty_balance
+	} else {
+		new_alice_balance = new_counterparty_balance
+		new_bob_balance = new_my_balance
+	}
 
 	// 4. sign new state
 	timestamp_now := time.Now().UnixNano()
 
-	my_signature, err := payment.SignState(
+	var my_signature []byte
+	my_signature, err = payment.SignState(
 		onchain_state.app_id,
 		r.server.algo_account,
 		new_alice_balance,
@@ -226,9 +248,9 @@ func (r *rpcServer) Pay(ctx context.Context, in *asrpc.PayRequest) (*asrpc.PayRe
 
 	// 5. send new state to partner node
 	newAliceBalanceBytes := make([]byte, 8)
-	binary.BigEndian.PutUint64(newAliceBalanceBytes, new_alice_balance)
-
 	newBobBalanceBytes := make([]byte, 8)
+
+	binary.BigEndian.PutUint64(newAliceBalanceBytes, new_alice_balance)
 	binary.BigEndian.PutUint64(newBobBalanceBytes, new_bob_balance)
 
 	timestampBytes := make([]byte, 8)
@@ -329,7 +351,7 @@ func (r *rpcServer) InitiateCloseChannel(ctx context.Context, in *asrpc.Initiate
 
 	// check if alice or bob have not enough balance to close channel
 	if latestOffChainState.alice_balance < 1000 || latestOffChainState.bob_balance < 1000 {
-		fmt.Printf("Error: not enough balance to close channel\n")
+		fmt.Printf("Error: not enough balance to close channel\n\n")
 		return nil, fmt.Errorf("not enough balance to close channel")
 	}
 

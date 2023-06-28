@@ -188,7 +188,7 @@ func (s *server) handleConnection(conn net.Conn) {
 		server_response.Message = "approve"
 
 	case "pay_request":
-		alice_address := string(client_request.Args[0])
+		counterparty_address := string(client_request.Args[0])
 		alice_new_balance := binary.BigEndian.Uint64(client_request.Args[1])
 		bob_new_balance := binary.BigEndian.Uint64(client_request.Args[2])
 		new_timestamp := int64(binary.BigEndian.Uint64(client_request.Args[3]))
@@ -196,17 +196,24 @@ func (s *server) handleConnection(conn net.Conn) {
 		channel_partner_signature := client_request.Args[4]
 
 		// 1. load onchain state
-		onchain_state, ok := s.payment_channels_onchain_states[alice_address]
+		onchain_state, ok := s.payment_channels_onchain_states[counterparty_address]
 		if !ok {
-			fmt.Printf("Error: payment channel with address %s does not exist\n", alice_address)
+			fmt.Printf("Error: payment channel with address %s does not exist\n", counterparty_address)
 			server_response.Message = "reject"
 			break
 		}
 
+		var me_alice bool
+		if onchain_state.alice_address == s.algo_account.Address.String() {
+			me_alice = true
+		} else {
+			me_alice = false
+		}
+
 		// 2. load latest off chain state
-		payment_log, ok := s.payment_channels_offchain_states_log[alice_address]
+		payment_log, ok := s.payment_channels_offchain_states_log[counterparty_address]
 		if !ok {
-			fmt.Printf("Error: payment channel with address %s does not exist\n", alice_address)
+			fmt.Printf("Error: payment channel with address %s does not exist\n", counterparty_address)
 			server_response.Message = "reject"
 			break
 		}
@@ -216,17 +223,30 @@ func (s *server) handleConnection(conn net.Conn) {
 			server_response.Message = "reject"
 			break
 		}
-		last_alice_balance := latestOffChainState.alice_balance
-		last_bob_balance := latestOffChainState.bob_balance
+		var last_my_balance uint64
+		var last_counterparty_balance uint64
+		var my_new_balance uint64
+		var counterparty_new_balance uint64
+		if me_alice {
+			last_my_balance = latestOffChainState.alice_balance
+			last_counterparty_balance = latestOffChainState.bob_balance
+			my_new_balance = alice_new_balance
+			counterparty_new_balance = bob_new_balance
+		} else {
+			last_my_balance = latestOffChainState.bob_balance
+			last_counterparty_balance = latestOffChainState.alice_balance
+			my_new_balance = bob_new_balance
+			counterparty_new_balance = alice_new_balance
+		}
 		last_timestamp := latestOffChainState.timestamp
 
 		// 3. verify that all new parameters are beneficial for me
-		alice_balance_diff := int64(alice_new_balance) - int64(last_alice_balance)
-		bob_balance_diff := int64(bob_new_balance) - int64(last_bob_balance)
+		counterparty_balance_diff := int64(last_counterparty_balance) - int64(counterparty_new_balance)
+		my_balance_diff := int64(last_my_balance) - int64(my_new_balance)
 
-		if !(alice_balance_diff < 0 && // alice new balance must be smaller than old balance
-			bob_balance_diff == (-1)*alice_balance_diff && // what bob gains, alice loses
-			alice_new_balance >= onchain_state.penalty_reserve && // alice must have enough funds to pay the penalty
+		if !(counterparty_balance_diff > 0 && // counterparty must pay to us
+			my_balance_diff == (-1)*counterparty_balance_diff && // what bob gains, alice loses
+			counterparty_new_balance >= onchain_state.penalty_reserve && // alice must have enough funds to pay the penalty
 			last_timestamp < new_timestamp) { // timestamp must be increasing
 
 			fmt.Println("Error: invalid new balances")
@@ -241,7 +261,7 @@ func (s *server) handleConnection(conn net.Conn) {
 			bob_new_balance,
 			4161,
 			channel_partner_signature,
-			alice_address,
+			counterparty_address,
 			new_timestamp,
 		)
 		if !channel_partner_signature_correct {
@@ -278,10 +298,10 @@ func (s *server) handleConnection(conn net.Conn) {
 			app_id:        onchain_state.app_id,
 		}
 
-		if s.payment_channels_offchain_states_log[alice_address] == nil {
-			s.payment_channels_offchain_states_log[alice_address] = make(map[int64]paymentChannelOffChainState)
+		if s.payment_channels_offchain_states_log[counterparty_address] == nil {
+			s.payment_channels_offchain_states_log[counterparty_address] = make(map[int64]paymentChannelOffChainState)
 		}
-		s.payment_channels_offchain_states_log[alice_address][new_timestamp] = *off_chain_state
+		s.payment_channels_offchain_states_log[counterparty_address][new_timestamp] = *off_chain_state
 
 		// 7. send response to client
 		server_response.Message = "approve"
