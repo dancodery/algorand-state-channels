@@ -18,7 +18,10 @@ done
 
 # 3. Allocate nodes
 echo "Allocating nodes ${args[@]}..."
-pos allocations allocate ${args[@]}
+allocate_output=$(pos allocations allocate "${args[@]}")
+echo "$allocate_output"
+allocation_id=$(echo "$output" | awk '{print $4}')
+echo "Saved Allocation ID: $allocation_id"
 
 # 4. Configure nodes individually
 for ((i=0; i<${#args[@]}; i++)); do
@@ -35,8 +38,8 @@ for ((i=0; i<${#args[@]}; i++)); do
 done
 
 # 5. Print result folder
-allocation_id=$(pos allocations list | grep "gockel" | awk '{ print $1 }')
-echo "Allocation ID: $allocation_id"
+# allocation_id=$(pos allocations list | grep "gockel" | awk '{ print $1 }')
+# echo "Allocation ID: $allocation_id"
 
 
 # results dir: /srv/testbed/results/gockel/default
