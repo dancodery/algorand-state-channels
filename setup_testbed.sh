@@ -23,7 +23,7 @@ echo
 echo "$allocate_output"
 echo
 sleep 1
-allocation_id=$(echo "$allocate_output" | awk '{print $3}')
+allocation_id=$(echo "$allocate_output" | awk '/Allocation ID:/ {print $NF}')
 result_directory=$(echo "$allocate_output" | awk '/Results in/ {print $NF}')
 echo "Allocation ID: $allocation_id"
 echo "Result Directory: $result_directory"
@@ -41,7 +41,7 @@ for ((i=0; i<${#args[@]}; i++)); do
 
     # copy files to node
     echo "Copying files to node ${args[i]}..."    
-    pos nodes copy --recursive --to /root ${args[i]} /home/gockel/algorand-state-channels
+    pos nodes copy --recursive --dest /root ${args[i]} /home/gockel/algorand-state-channels
 
     # launch commands
     echo "Launching commands on node ${args[i]}"
