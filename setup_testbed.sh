@@ -13,14 +13,14 @@ for ((i=0; i<${#args[@]}; i++)); do
     echo "Allocating node ${args[i]}..."
     pos allocations allocate ${args[i]}
 
-    echo "Configuring node ${args[i]}"
+    echo "Configuring node ${args[i]}..."
     pos nodes image ${args[i]} debian-bullseye
 
-    echo "Reset node ${args[i]}"
+    echo "Reset node ${args[i]}..."
     pos nodes reset ${args[i]}
 
     echo "Launching commands on node ${args[i]}"
-    pos commmands launch ${args[i]} "echo $(hostname)"
+    pos commands launch ${args[i]} "echo $(hostname)"
 done
 
 
