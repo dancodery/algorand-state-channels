@@ -18,7 +18,7 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
-const NUM_UINTS = 8
+const NUM_UINTS = 7
 const NUM_BYTE_SLICES = 2
 
 // CompileTeal compiles a teal file into binary
@@ -332,6 +332,7 @@ func InitiateCloseChannel(
 func FinalizeCloseChannel(
 	algod_client *algod.Client,
 	sender_account crypto.Account,
+	counterparty_address string,
 	app_id uint64,
 ) {
 	sp, err := algod_client.SuggestedParams().Do(context.Background())
@@ -343,9 +344,12 @@ func FinalizeCloseChannel(
 		[]byte("finalizeChannelClosing"),
 	}
 	callFinalizeChannelClosingTxn, err := transaction.MakeApplicationNoOpTx(
-		app_id,                 // app_id
-		app_args,               // app_args
-		nil,                    // accounts
+		app_id,   // app_id
+		app_args, // app_args
+		[]string{
+			sender_account.Address.String(),
+			counterparty_address,
+		}, // accounts
 		nil,                    // foreign_apps
 		nil,                    // foreign_assets
 		sp,                     // sp
