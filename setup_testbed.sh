@@ -24,20 +24,29 @@ allocation_id=$(echo "$allocate_output" | awk '{print $3}')
 result_directory=$(echo "$allocate_output" | awk '/Results in/ {print $NF}')
 echo "Allocation ID: $allocation_id"
 echo "Result Directory: $result_directory"
+echo
 
 # 4. Configure nodes individually
 for ((i=0; i<${#args[@]}; i++)); do
+    # load image
     echo "Configuring node ${args[i]}..."
     pos nodes image ${args[i]} debian-bullseye
 
+    # reset node and reboot
     echo "Reset node ${args[i]}..."
     pos nodes reset ${args[i]}
 
+    # copy files to node
+    echo "Copying files to node ${args[i]}..."
+    pos nodes copy ${args[i]} --recursive --from ./files --to /root
+
+    # launch commands
     echo "Launching commands on node ${args[i]}"
     pos commands launch ${args[i]} -- echo "$(hostname)"
 
     echo 
 done
+
 
 
 # results dir: /srv/testbed/results/gockel/default
