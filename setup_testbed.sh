@@ -20,7 +20,7 @@ done
 echo "Allocating nodes ${args[@]}..."
 allocate_output=$(pos allocations allocate "${args[@]}")
 echo "$allocate_output"
-allocation_id=$(echo "$output" | awk '{print $4}')
+allocation_id=$(echo "$allocate_output" | awk '{print $4}')
 echo "Saved Allocation ID: $allocation_id"
 
 # 4. Configure nodes individually
