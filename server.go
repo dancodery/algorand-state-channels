@@ -288,6 +288,16 @@ func (s *server) handleConnection(conn net.Conn) {
 			return
 		}
 
+		var alice_signature []byte
+		var bob_signature []byte
+		if me_alice {
+			alice_signature = my_signature
+			bob_signature = channel_partner_signature
+		} else {
+			alice_signature = channel_partner_signature
+			bob_signature = my_signature
+		}
+
 		// 6. save new state
 		off_chain_state := &paymentChannelOffChainState{
 			timestamp: new_timestamp,
@@ -295,8 +305,8 @@ func (s *server) handleConnection(conn net.Conn) {
 			alice_balance: alice_new_balance,
 			bob_balance:   bob_new_balance,
 
-			alice_signature: channel_partner_signature,
-			bob_signature:   my_signature,
+			alice_signature: alice_signature,
+			bob_signature:   bob_signature,
 
 			algorand_port: 4161,
 			app_id:        onchain_state.app_id,
