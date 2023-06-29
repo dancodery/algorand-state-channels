@@ -42,7 +42,7 @@ done
 
 # 6. Wait for nodes to be ready, so that they can reboot in parallel
 echo "Waiting for nodes to be ready..."
-sleep 120 # 140 works, 110 not
+sleep 120 # 120 works, 110 not
 echo
 
 for ((i=0; i<${#args[@]}; i++)); do
@@ -60,11 +60,14 @@ done
 sandbox_node=${args[0]}
 
 # Install Docker
-pos commands launch ${sandbox_node}  -- apt update
-pos commands launch ${sandbox_node}  -- apt upgrade
-pos commands launch ${sandbox_node}  -- apt install ca-certificates curl gnupg
-# pos commands launch ${sandbox_node}  -- mkdir -m 0755 -p /etc/apt/keyrings
-# pos commands launch ${sandbox_node}  -- curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+pos commands launch --infile testbed_docker_setup.sh --queued --name docker-setup ${sandbox_node}
+
+
+# pos commands launch ${sandbox_node}  -- apt update
+# pos commands launch ${sandbox_node}  -- apt upgrade
+# pos commands launch ${sandbox_node}  -- apt install ca-certificates curl gnupg
+# pos commands launch ${sandbox_node}  -- install -m 0755 -d /etc/apt/keyrings
+# pos commands launch ${sandbox_node}  -- 
 
 # pos commands launch ${sandbox_node}  -- echo \
 #   "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
