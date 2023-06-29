@@ -19,10 +19,6 @@ done
 # 3. Allocate nodes
 echo "Allocating nodes ${args[@]}..."
 allocate_output=$(pos allocations allocate "${args[@]}")
-echo
-echo "$allocate_output"
-echo
-sleep 1
 
 # 4. Save variables
 allocation_id=$(echo "$allocate_output" | awk -F ': ' '/Allocation ID:/ {gsub(/[()]/,"",$2); print $2}')
@@ -46,7 +42,7 @@ done
 
 # 6. Wait for nodes to be ready, so that they can reboot in parallel
 echo "Waiting for nodes to be ready..."
-sleep 100 # 90 works, 90 not
+sleep 110 # 140 works, 100 not
 echo
 
 for ((i=0; i<${#args[@]}; i++)); do
@@ -62,9 +58,9 @@ done
 
 # 9. Setup algorand sandbox
 sandbox_node=${args[0]}
-pos commands launch sandbox_node -- apt update
-pos commands launch sandbox_node -- apt upgrade
-pos commands launch sandbox_node -- apt-get install \
+pos commands launch ${sandbox_node} -- apt update
+pos commands launch ${sandbox_node}  -- apt upgrade
+pos commands launch ${sandbox_node}  -- apt-get install \
                                                 ca-certificates \
                                                 curl \
                                                 gnupg
