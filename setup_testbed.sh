@@ -58,12 +58,21 @@ done
 
 # 9. Setup algorand sandbox
 sandbox_node=${args[0]}
-pos commands launch ${sandbox_node} -- apt update
+
+# Install Docker
+pos commands launch ${sandbox_node}  -- apt update
 pos commands launch ${sandbox_node}  -- apt upgrade
-pos commands launch ${sandbox_node}  -- apt-get install \
-                                                ca-certificates \
-                                                curl \
-                                                gnupg
+pos commands launch ${sandbox_node}  -- apt install ca-certificates curl gnupg
+# pos commands launch ${sandbox_node}  -- mkdir -m 0755 -p /etc/apt/keyrings
+# pos commands launch ${sandbox_node}  -- curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+# pos commands launch ${sandbox_node}  -- echo \
+#   "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+#   "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+#   tee /etc/apt/sources.list.d/docker.list > /dev/null
+# pos commands launch ${sandbox_node}  -- 
+# pos commands launch ${sandbox_node}  -- 
+
 
 
 # 10. Setup for alice and bob
