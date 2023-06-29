@@ -46,7 +46,7 @@ done
 
 # 6. Wait for nodes to be ready, so that they can reboot in parallel
 echo "Waiting for nodes to be ready..."
-sleep 90 # 90 works, 20 not
+sleep 100 # 90 works, 90 not
 echo
 
 for ((i=0; i<${#args[@]}; i++)); do
@@ -55,10 +55,22 @@ for ((i=0; i<${#args[@]}; i++)); do
     pos nodes copy --recursive --dest /root ${args[i]} /home/gockel/algorand-state-channels
 
     # 8. Run commands on nodes
-    echo "Running commands on node ${args[i]}..."
-    pos commands launch ${args[i]} -- echo "$(hostname)"
-    pos commands launch ${args[i]} -- /bin/bash -c "cd /root/algorand-state-channels && ./setup.sh"
+    # echo "Running commands on node ${args[i]}..."
+    # pos commands launch ${args[i]} -- echo "$(hostname)"
+    # pos commands launch ${args[i]} -- /bin/bash -c "cd /root/algorand-state-channels && ./setup.sh"
 done
+
+# 9. Setup algorand sandbox
+sandbox_node=${args[0]}
+pos commands launch sandbox_node -- apt update
+pos commands launch sandbox_node -- apt upgrade
+pos commands launch sandbox_node -- apt-get install \
+                                                ca-certificates \
+                                                curl \
+                                                gnupg
+
+
+# 10. Setup for alice and bob
 
 
 echo 
