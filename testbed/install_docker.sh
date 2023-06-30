@@ -1,7 +1,5 @@
 #!/bin/bash
 
-echo "Hello from install_docker.sh"
-
 apt update
 apt upgrade
 apt install ca-certificates curl gnupg
