@@ -49,13 +49,14 @@ for ((i=0; i<${#args[@]}; i++)); do
     # 7. Copy files to nodes
     echo "Copying files to node ${args[i]}..."
     pos nodes copy --recursive --dest /root ${args[i]} /home/gockel/algorand-state-channels
+
+    echo
 done
 
 # 9. Setup algorand sandbox
 sandbox_node=${args[0]}
 
 # Install Docker
-echo
 echo "Installing Docker on node ${sandbox_node}..."
 pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${sandbox_node}
 pos commands launch --infile testbed/run_sandbox.sh --queued --name run-sandbox ${sandbox_node}
