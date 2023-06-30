@@ -42,7 +42,7 @@ done
 
 # 6. Wait for nodes to be ready, so that they can reboot in parallel
 echo "Waiting for nodes to be ready..."
-sleep 115 # 115 works, 110 not
+sleep 117 # 120 works, 115 not
 echo
 
 for ((i=0; i<${#args[@]}; i++)); do
@@ -62,7 +62,7 @@ sandbox_node=${args[0]}
 # Install Docker
 echo "Installing Docker on node ${sandbox_node}..."
 pos commands launch --infile testbed/docker_setup.sh --queued --name docker-setup ${sandbox_node}
-pos commands launch --infile testbed/run_sandbox.sh --queued --name run-sandbox ${sandbox_node}
+# pos commands launch --infile testbed/run_sandbox.sh --queued --name run-sandbox ${sandbox_node}
 
 
 # pos commands launch ${sandbox_node}  -- apt update

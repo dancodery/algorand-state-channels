@@ -1,3 +1,6 @@
+# print out executed commands
+set -x
+
 apt update
 apt upgrade
 apt install ca-certificates curl gnupg
