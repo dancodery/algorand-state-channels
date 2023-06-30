@@ -42,18 +42,13 @@ done
 
 # 6. Wait for nodes to be ready, so that they can reboot in parallel
 echo "Waiting for nodes to be ready..."
-sleep 117 # 120 works, 115 not
+sleep 117 # 117 works, 115 not
 echo
 
 for ((i=0; i<${#args[@]}; i++)); do
     # 7. Copy files to nodes
     echo "Copying files to node ${args[i]}..."
     pos nodes copy --recursive --dest /root ${args[i]} /home/gockel/algorand-state-channels
-
-    # 8. Run commands on nodes
-    # echo "Running commands on node ${args[i]}..."
-    # pos commands launch ${args[i]} -- echo "$(hostname)"
-    # pos commands launch ${args[i]} -- /bin/bash -c "cd /root/algorand-state-channels && ./setup.sh"
 done
 
 # 9. Setup algorand sandbox
@@ -62,25 +57,14 @@ sandbox_node=${args[0]}
 # Install Docker
 echo "Installing Docker on node ${sandbox_node}..."
 pos commands launch --infile testbed/docker_setup.sh --queued --name docker-setup ${sandbox_node}
-# pos commands launch --infile testbed/run_sandbox.sh --queued --name run-sandbox ${sandbox_node}
-
-
-# pos commands launch ${sandbox_node}  -- apt update
-# pos commands launch ${sandbox_node}  -- apt upgrade
-# pos commands launch ${sandbox_node}  -- apt install ca-certificates curl gnupg
-# pos commands launch ${sandbox_node}  -- install -m 0755 -d /etc/apt/keyrings
-# pos commands launch ${sandbox_node}  -- 
-
-# pos commands launch ${sandbox_node}  -- echo \
-#   "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-#   "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
-#   tee /etc/apt/sources.list.d/docker.list > /dev/null
-# pos commands launch ${sandbox_node}  -- 
-# pos commands launch ${sandbox_node}  -- 
-
-
+pos commands launch --infile testbed/run_sandbox.sh --queued --name run-sandbox ${sandbox_node}
+echo "Sandbox is running on node ${sandbox_node}..."
 
 # 10. Setup for alice and bob
+alice_node=${args[1]}
+bob_node=${args[2]}
+pos commands launch --infile testbed/docker_setup.sh --queued --name docker-setup ${alice_node}
+pos commands launch --infile testbed/docker_setup.sh --queued --name docker-setup ${bob_node}
 
 
 echo 
