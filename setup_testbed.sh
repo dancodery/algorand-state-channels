@@ -60,7 +60,7 @@ done
 sandbox_node=${args[0]}
 
 # Install Docker
-pos commands launch --infile testbed_docker_setup.sh --queued --name docker-setup ${sandbox_node}
+pos commands launch --infile testbed/docker_setup.sh --queued --name docker-setup ${sandbox_node}
 
 
 # pos commands launch ${sandbox_node}  -- apt update
