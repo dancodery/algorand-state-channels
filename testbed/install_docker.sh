@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# print out executed commands
-set -x
+echo "Hello from install_docker.sh"
 
 apt update
 apt upgrade

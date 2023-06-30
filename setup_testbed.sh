@@ -55,16 +55,17 @@ done
 sandbox_node=${args[0]}
 
 # Install Docker
+echo
 echo "Installing Docker on node ${sandbox_node}..."
-pos commands launch --infile testbed/docker_setup.sh --queued --name docker-setup ${sandbox_node}
+pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${sandbox_node}
 pos commands launch --infile testbed/run_sandbox.sh --queued --name run-sandbox ${sandbox_node}
 echo "Sandbox is running on node ${sandbox_node}..."
 
 # 10. Setup for alice and bob
-alice_node=${args[1]}
-bob_node=${args[2]}
-pos commands launch --infile testbed/docker_setup.sh --queued --name docker-setup ${alice_node}
-pos commands launch --infile testbed/docker_setup.sh --queued --name docker-setup ${bob_node}
+# alice_node=${args[1]}
+# bob_node=${args[2]}
+# pos commands launch --infile testbed/docker_setup.sh --queued --name docker-setup ${alice_node}
+# pos commands launch --infile testbed/docker_setup.sh --queued --name docker-setup ${bob_node}
 
 
 echo 
