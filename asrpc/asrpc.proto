@@ -13,11 +13,13 @@ service ASRPC {
 
     rpc Pay(PayRequest) returns (PayResponse) {}
 
-    rpc CloseChannel(CloseChannelRequest) returns (CloseChannelResponse) {}
+    rpc CooperativeCloseChannel(CooperativeCloseChannelRequest) returns (CooperativeCloseChannelResponse) {}
 
     rpc InitiateCloseChannel(InitiateCloseChannelRequest) returns (InitiateCloseChannelResponse) {}
 
     rpc FinalizeCloseChannel(FinalizeCloseChannelRequest) returns (FinalizeCloseChannelResponse) {}
+
+    rpc TryToCheat(TryToCheatRequest) returns (TryToCheatResponse) {}
 }
 
 message StateChannelNodeAddress {
@@ -28,6 +30,7 @@ message StateChannelNodeAddress {
 message RuntimeRecording {
     google.protobuf.Timestamp timestamp_start = 1;
     google.protobuf.Timestamp timestamp_end = 2;
+    uint64 blockchain_fee = 3;
 }
 
 message ResetRequest {}
@@ -65,11 +68,11 @@ message PayResponse {
     RuntimeRecording runtime_recording = 1;
 }
 
-message CloseChannelRequest {
+message CooperativeCloseChannelRequest {
     string algo_address = 1;
 }
 
-message CloseChannelResponse {
+message CooperativeCloseChannelResponse {
     RuntimeRecording runtime_recording = 1;
 }
 
@@ -88,4 +91,13 @@ message FinalizeCloseChannelRequest {
 message FinalizeCloseChannelResponse {
     RuntimeRecording runtime_recording = 1;
 }
+
+message TryToCheatRequest {
+    string algo_address = 1;
+}
+
+message TryToCheatResponse {
+    RuntimeRecording runtime_recording = 1;
+}
+
 

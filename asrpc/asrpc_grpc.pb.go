@@ -26,9 +26,10 @@ type ASRPCClient interface {
 	GetInfo(ctx context.Context, in *GetInfoRequest, opts ...grpc.CallOption) (*GetInfoResponse, error)
 	OpenChannel(ctx context.Context, in *OpenChannelRequest, opts ...grpc.CallOption) (*OpenChannelResponse, error)
 	Pay(ctx context.Context, in *PayRequest, opts ...grpc.CallOption) (*PayResponse, error)
-	CloseChannel(ctx context.Context, in *CloseChannelRequest, opts ...grpc.CallOption) (*CloseChannelResponse, error)
+	CooperativeCloseChannel(ctx context.Context, in *CooperativeCloseChannelRequest, opts ...grpc.CallOption) (*CooperativeCloseChannelResponse, error)
 	InitiateCloseChannel(ctx context.Context, in *InitiateCloseChannelRequest, opts ...grpc.CallOption) (*InitiateCloseChannelResponse, error)
 	FinalizeCloseChannel(ctx context.Context, in *FinalizeCloseChannelRequest, opts ...grpc.CallOption) (*FinalizeCloseChannelResponse, error)
+	TryToCheat(ctx context.Context, in *TryToCheatRequest, opts ...grpc.CallOption) (*TryToCheatResponse, error)
 }
 
 type aSRPCClient struct {
@@ -75,9 +76,9 @@ func (c *aSRPCClient) Pay(ctx context.Context, in *PayRequest, opts ...grpc.Call
 	return out, nil
 }
 
-func (c *aSRPCClient) CloseChannel(ctx context.Context, in *CloseChannelRequest, opts ...grpc.CallOption) (*CloseChannelResponse, error) {
-	out := new(CloseChannelResponse)
-	err := c.cc.Invoke(ctx, "/ASRPC/CloseChannel", in, out, opts...)
+func (c *aSRPCClient) CooperativeCloseChannel(ctx context.Context, in *CooperativeCloseChannelRequest, opts ...grpc.CallOption) (*CooperativeCloseChannelResponse, error) {
+	out := new(CooperativeCloseChannelResponse)
+	err := c.cc.Invoke(ctx, "/ASRPC/CooperativeCloseChannel", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -102,6 +103,15 @@ func (c *aSRPCClient) FinalizeCloseChannel(ctx context.Context, in *FinalizeClos
 	return out, nil
 }
 
+func (c *aSRPCClient) TryToCheat(ctx context.Context, in *TryToCheatRequest, opts ...grpc.CallOption) (*TryToCheatResponse, error) {
+	out := new(TryToCheatResponse)
+	err := c.cc.Invoke(ctx, "/ASRPC/TryToCheat", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ASRPCServer is the server API for ASRPC service.
 // All implementations must embed UnimplementedASRPCServer
 // for forward compatibility
@@ -110,9 +120,10 @@ type ASRPCServer interface {
 	GetInfo(context.Context, *GetInfoRequest) (*GetInfoResponse, error)
 	OpenChannel(context.Context, *OpenChannelRequest) (*OpenChannelResponse, error)
 	Pay(context.Context, *PayRequest) (*PayResponse, error)
-	CloseChannel(context.Context, *CloseChannelRequest) (*CloseChannelResponse, error)
+	CooperativeCloseChannel(context.Context, *CooperativeCloseChannelRequest) (*CooperativeCloseChannelResponse, error)
 	InitiateCloseChannel(context.Context, *InitiateCloseChannelRequest) (*InitiateCloseChannelResponse, error)
 	FinalizeCloseChannel(context.Context, *FinalizeCloseChannelRequest) (*FinalizeCloseChannelResponse, error)
+	TryToCheat(context.Context, *TryToCheatRequest) (*TryToCheatResponse, error)
 	mustEmbedUnimplementedASRPCServer()
 }
 
@@ -132,14 +143,17 @@ func (UnimplementedASRPCServer) OpenChannel(context.Context, *OpenChannelRequest
 func (UnimplementedASRPCServer) Pay(context.Context, *PayRequest) (*PayResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Pay not implemented")
 }
-func (UnimplementedASRPCServer) CloseChannel(context.Context, *CloseChannelRequest) (*CloseChannelResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CloseChannel not implemented")
+func (UnimplementedASRPCServer) CooperativeCloseChannel(context.Context, *CooperativeCloseChannelRequest) (*CooperativeCloseChannelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CooperativeCloseChannel not implemented")
 }
 func (UnimplementedASRPCServer) InitiateCloseChannel(context.Context, *InitiateCloseChannelRequest) (*InitiateCloseChannelResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method InitiateCloseChannel not implemented")
 }
 func (UnimplementedASRPCServer) FinalizeCloseChannel(context.Context, *FinalizeCloseChannelRequest) (*FinalizeCloseChannelResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FinalizeCloseChannel not implemented")
+}
+func (UnimplementedASRPCServer) TryToCheat(context.Context, *TryToCheatRequest) (*TryToCheatResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method TryToCheat not implemented")
 }
 func (UnimplementedASRPCServer) mustEmbedUnimplementedASRPCServer() {}
 
@@ -226,20 +240,20 @@ func _ASRPC_Pay_Handler(srv interface{}, ctx context.Context, dec func(interface
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ASRPC_CloseChannel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CloseChannelRequest)
+func _ASRPC_CooperativeCloseChannel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CooperativeCloseChannelRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ASRPCServer).CloseChannel(ctx, in)
+		return srv.(ASRPCServer).CooperativeCloseChannel(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/ASRPC/CloseChannel",
+		FullMethod: "/ASRPC/CooperativeCloseChannel",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ASRPCServer).CloseChannel(ctx, req.(*CloseChannelRequest))
+		return srv.(ASRPCServer).CooperativeCloseChannel(ctx, req.(*CooperativeCloseChannelRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -280,6 +294,24 @@ func _ASRPC_FinalizeCloseChannel_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ASRPC_TryToCheat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TryToCheatRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ASRPCServer).TryToCheat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ASRPC/TryToCheat",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ASRPCServer).TryToCheat(ctx, req.(*TryToCheatRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ASRPC_ServiceDesc is the grpc.ServiceDesc for ASRPC service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -304,8 +336,8 @@ var ASRPC_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ASRPC_Pay_Handler,
 		},
 		{
-			MethodName: "CloseChannel",
-			Handler:    _ASRPC_CloseChannel_Handler,
+			MethodName: "CooperativeCloseChannel",
+			Handler:    _ASRPC_CooperativeCloseChannel_Handler,
 		},
 		{
 			MethodName: "InitiateCloseChannel",
@@ -314,6 +346,10 @@ var ASRPC_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "FinalizeCloseChannel",
 			Handler:    _ASRPC_FinalizeCloseChannel_Handler,
+		},
+		{
+			MethodName: "TryToCheat",
+			Handler:    _ASRPC_TryToCheat_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
