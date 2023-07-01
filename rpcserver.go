@@ -144,6 +144,8 @@ func (r *rpcServer) OpenChannel(ctx context.Context, in *asrpc.OpenChannelReques
 		}
 		r.server.payment_channels_onchain_states[in.PartnerNode.AlgoAddress] = *onchain_state
 
+		r.server.UpdateWatchtowerState()
+
 		// save the payment channel off chain state
 		off_chain_state := &paymentChannelOffChainState{
 			timestamp: time.Now().UnixNano(),
@@ -390,11 +392,18 @@ func (r *rpcServer) FinalizeCloseChannel(ctx context.Context, in *asrpc.Finalize
 		return nil, fmt.Errorf("payment channel with partner node %v does not exist", in.AlgoAddress)
 	}
 
+	var counterparty_address string
+	if r.server.algo_account.Address.String() == onchain_state.alice_address {
+		counterparty_address = onchain_state.bob_address
+	} else {
+		counterparty_address = onchain_state.alice_address
+	}
+
 	// 2. call finalize close channel
 	payment.FinalizeCloseChannel(
 		r.server.algod_client,
 		r.server.algo_account,
-		onchain_state.bob_address,
+		counterparty_address,
 		onchain_state.app_id)
 	fmt.Printf("Finalized channel closure for app_id: %v\n\n", onchain_state.app_id)
 
@@ -405,6 +414,120 @@ func (r *rpcServer) FinalizeCloseChannel(ctx context.Context, in *asrpc.Finalize
 		TimestampEnd:   timestamp_end,
 	}
 	return &asrpc.FinalizeCloseChannelResponse{
+		RuntimeRecording: runtime_recording,
+	}, nil
+}
+
+func (r *rpcServer) CooperativeCloseChannel(ctx context.Context, in *asrpc.CooperativeCloseChannelRequest) (*asrpc.CooperativeCloseChannelResponse, error) {
+	timestamp_start := timestamppb.Now()
+
+	// 1. get on chain state
+	onchain_state, ok := r.server.payment_channels_onchain_states[in.AlgoAddress]
+	if !ok {
+		fmt.Printf("Error: payment channel with partner node %v does not exist\n", in.AlgoAddress)
+		return nil, fmt.Errorf("payment channel with partner node %v does not exist", in.AlgoAddress)
+	}
+
+	// 2. retrieve latest off chain state
+	payment_log, ok := r.server.payment_channels_offchain_states_log[in.AlgoAddress]
+	if !ok {
+		fmt.Printf("Error: payment channel with partner node %v does not exist\n", in.AlgoAddress)
+		return nil, fmt.Errorf("payment channel with partner node %v does not exist", in.AlgoAddress)
+	}
+	latestOffChainState, err := getLatestOffChainState(payment_log)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return nil, err
+	}
+
+	// 3. check if alice or bob have not enough balance to close channel
+	if latestOffChainState.alice_balance < 1000 || latestOffChainState.bob_balance < 1000 {
+		fmt.Printf("Error: not enough balance to close channel\n\n")
+		return nil, fmt.Errorf("not enough balance to close channel")
+	}
+
+	// 4. call cooperative close channel
+	// payment.CooperativeCloseChannel(
+	// 	r.server.algod_client,
+	// 	r.server.algo_account,
+	// 	onchain_state.bob_address,
+	// 	onchain_state.app_id,
+	// 	latestOffChainState.alice_balance,
+	// 	latestOffChainState.bob_balance,
+	// 	uint64(latestOffChainState.timestamp),
+	// 	latestOffChainState.alice_signature,
+	// 	latestOffChainState.bob_signature)
+
+	fmt.Printf("Cooperative channel closure for app_id: %v\n\n", onchain_state.app_id)
+
+	timestamp_end := timestamppb.Now()
+
+	runtime_recording := &asrpc.RuntimeRecording{
+		TimestampStart: timestamp_start,
+		TimestampEnd:   timestamp_end,
+	}
+	return &asrpc.CooperativeCloseChannelResponse{
+		RuntimeRecording: runtime_recording,
+	}, nil
+}
+
+func (r *rpcServer) TryToCheat(ctx context.Context, in *asrpc.TryToCheatRequest) (*asrpc.TryToCheatResponse, error) {
+	timestamp_start := timestamppb.Now()
+
+	// 1. get on chain state
+	onchain_state, ok := r.server.payment_channels_onchain_states[in.AlgoAddress]
+	if !ok {
+		fmt.Printf("Error: payment channel with partner node %v does not exist\n", in.AlgoAddress)
+		return nil, fmt.Errorf("payment channel with partner node %v does not exist", in.AlgoAddress)
+	}
+
+	// 2. retrieve off chain state with highest balance
+	payment_log, ok := r.server.payment_channels_offchain_states_log[in.AlgoAddress]
+	if !ok {
+		fmt.Printf("Error: payment channel with partner node %v does not exist\n", in.AlgoAddress)
+		return nil, fmt.Errorf("payment channel with partner node %v does not exist", in.AlgoAddress)
+	}
+	var is_alice bool
+	if onchain_state.alice_address == r.server.algo_account.Address.String() {
+		is_alice = true
+	} else {
+		is_alice = false
+	}
+	highesBalanceOffChainState, err := getHighestBalanceOffChainState(is_alice, payment_log)
+	if err != nil {
+		fmt.Printf("Error: %v\n", err)
+		return nil, err
+	}
+
+	// 3. check if alice or bob have not enough balance to close channel
+	if highesBalanceOffChainState.alice_balance < 1000 || highesBalanceOffChainState.bob_balance < 1000 {
+		fmt.Printf("Error: not enough balance to close channel\n\n")
+		return nil, fmt.Errorf("not enough balance to close channel")
+	}
+
+	// 4. intiate close channel
+	payment.InitiateCloseChannel(
+		r.server.algod_client,
+		r.server.algo_account,
+		4161,
+		onchain_state.app_id,
+		highesBalanceOffChainState.alice_balance,
+		highesBalanceOffChainState.bob_balance,
+		uint64(highesBalanceOffChainState.timestamp),
+		highesBalanceOffChainState.alice_signature,
+		highesBalanceOffChainState.bob_signature)
+
+	fmt.Printf("Try to cheat for app_id: %v\n", onchain_state.app_id)
+	fmt.Printf("Alice cheating balance: %v\n", highesBalanceOffChainState.alice_balance)
+	fmt.Printf("Bob cheating balance: %v\n\n", highesBalanceOffChainState.bob_balance)
+
+	timestamp_end := timestamppb.Now()
+
+	runtime_recording := &asrpc.RuntimeRecording{
+		TimestampStart: timestamp_start,
+		TimestampEnd:   timestamp_end,
+	}
+	return &asrpc.TryToCheatResponse{
 		RuntimeRecording: runtime_recording,
 	}, nil
 }

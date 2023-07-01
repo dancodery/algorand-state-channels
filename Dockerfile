@@ -21,7 +21,7 @@ COPY    asrpc/ $GOPATH/src/github.com/dancodery/algorand-state-channels/asrpc/
 COPY    payment/ $GOPATH/src/github.com/dancodery/algorand-state-channels/payment/
 COPY    payment/testing/ $GOPATH/src/github.com/dancodery/algorand-state-channels/payment/testing/
 COPY    payment/build_contracts/ /smart_contracts/
-COPY    asd.go server.go client.go rpcserver.go config.go $GOPATH/src/github.com/dancodery/algorand-state-channels/
+COPY    asd.go server.go client.go rpcserver.go config.go watchtower.go $GOPATH/src/github.com/dancodery/algorand-state-channels/
 
 # build binaries
 RUN go build -o  /bin/ascli cmd/ascli/***

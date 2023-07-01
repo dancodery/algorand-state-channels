@@ -186,8 +186,9 @@ func (s *server) handleConnection(conn net.Conn) {
 
 		fmt.Printf("\nThe payment channel with app_id %d was opened successfully.\n", app_id)
 
-		// print s.payment_channels_onchain_states
 		fmt.Printf("All Current Payment Channels: %+v\n\n", s.payment_channels_onchain_states)
+
+		s.UpdateWatchtowerState()
 
 		server_response.Message = "approve"
 
@@ -366,6 +367,31 @@ func getLatestOffChainState(payment_log map[int64]paymentChannelOffChainState) (
 	}
 
 	return &latest_offchain_state, nil
+}
+
+func getHighestBalanceOffChainState(is_alice bool, payment_log map[int64]paymentChannelOffChainState) (*paymentChannelOffChainState, error) {
+	highest_balance := uint64(0)
+	var highest_balance_offchain_state paymentChannelOffChainState
+
+	for _, offchain_state := range payment_log {
+		var balance uint64
+		if is_alice {
+			balance = offchain_state.alice_balance
+		} else {
+			balance = offchain_state.bob_balance
+		}
+
+		if balance > highest_balance {
+			highest_balance = balance
+			highest_balance_offchain_state = offchain_state
+		}
+	}
+
+	if highest_balance == 0 {
+		return nil, errors.New("no off chain state found")
+	}
+
+	return &highest_balance_offchain_state, nil
 }
 
 func parseInt(s string) int {
