@@ -8,8 +8,8 @@ import (
 	"github.com/urfave/cli"
 )
 
-var closeChannelCommand = cli.Command{
-	Name:  "closechannel",
+var cooperativecloseChannelCommand = cli.Command{
+	Name:  "cooperativeclosechannel",
 	Usage: "close an existing channel",
 	Description: `
 		Close an existing channel.
@@ -32,14 +32,14 @@ func closeChannel(ctx *cli.Context) error {
 		return cli.NewExitError("partner algo address is required", 1)
 	}
 
-	close_channel_request := &asrpc.CloseChannelRequest{
+	close_channel_request := &asrpc.CooperativeCloseChannelRequest{
 		AlgoAddress: ctx.String("partner_address"),
 	}
 
 	ctxb := context.Background()
 	client := getClient(ctx)
 
-	close_channel_response, err := client.CloseChannel(ctxb, close_channel_request)
+	close_channel_response, err := client.CooperativeCloseChannel(ctxb, close_channel_request)
 	if err != nil {
 		return err
 	}
