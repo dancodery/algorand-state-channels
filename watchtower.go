@@ -102,6 +102,14 @@ func (s *server) UpdateWatchtowerState() {
 						uint64(latestOffChainState.timestamp),
 						latestOffChainState.alice_signature,
 						latestOffChainState.bob_signature)
+
+					fmt.Printf("On chain state alice balance: %v\n", onchain_latest_alice_balance)
+					fmt.Printf("On chain state bob balance: %v\n", onchain_latest_bob_balance)
+					fmt.Printf("Disputed real alice balance: %v\n", latestOffChainState.alice_balance)
+					fmt.Printf("Disputed real bob balance: %v\n\n", latestOffChainState.bob_balance)
+
+					// delete the payment channel from the list of payment channels
+					delete(s.payment_channels_onchain_states, address)
 				}
 			}
 
