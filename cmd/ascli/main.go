@@ -47,10 +47,10 @@ func main() {
 		getInfoCommand,
 		openChannelCommand,
 		payCommand,
-		closeChannelCommand,
+		cooperativecloseChannelCommand,
 		initiateChannelClosingCommand,
 		finalizeChannelClosingCommand,
-		// cooperativecloseChannelCommand,
+		tryToCheatCommand, // only for testing purposes
 	}
 
 	if err := app.Run(os.Args); err != nil {
