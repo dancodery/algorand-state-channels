@@ -10,15 +10,17 @@ def approval_program():
 	alice_address = Bytes("alice_address")			# byte_slice: creator and funder of the smart contract												
 	bob_address = Bytes("bob_address")				# byte_slice: counterparty
 	
+	penalty_reserve = Bytes("penalty_reserve")					# uint: used to penalize expired transaction commitments
+	dispute_window = Bytes("dispute_window")					# uint: window in which a dispute can be raised
+
 	timeout = Bytes("timeout")              		# uint: part of general state; value fixed during execution
 
+	closing_initiator = Bytes("closing_initiator")	# byte_slice: initiator of the closing transaction
 	latest_alice_balance = Bytes("latest_alice_balance")      	# uint: part of application specific state; value variable during execution
 	latest_bob_balance = Bytes("latest_bob_balance")          	# uint: part of application specific state; value variable during execution
 	latest_state_timestamp = Bytes("latest_timestamp")			# uint: part of general state; when the latest transaction was signed by alice and bob
 	total_deposit = Bytes("total_deposit")						# uint: part of application specific state; value set by funding transaction
 
-	penalty_reserve = Bytes("penalty_reserve")					# uint: used to penalize expired transaction commitments
-	dispute_window = Bytes("dispute_window")					# uint: window in which a dispute can be raised
 
 	# closes the channel and pays out the funds to the respective parties
 	@Subroutine(TealType.none)
@@ -64,7 +66,7 @@ def approval_program():
 	# rebalances the channel by moving funds from one party to the other
 	def rebalance(sender_balance, recipient_balance, payment_amount):
 		return Seq(
-			Assert((App.globalGet(sender_balance) - payment_amount) >= App.globalGet(penalty_reserve)),
+			Assert((App.globalGet(sender_balance) - payment_amount) >= Int(0)),
 
 			App.globalPut(sender_balance, App.globalGet(sender_balance) - payment_amount),
 			App.globalPut(recipient_balance, App.globalGet(recipient_balance) + payment_amount),
@@ -131,6 +133,7 @@ def approval_program():
 	bob_signature = Txn.application_args[6] # 64 bytes
 	hash = Sha3_256( # cost: 130, takes 1 argument: data
 			Concat(
+				Bytes("STATE_UPDATE"),
 				algorand_port,
 				Bytes(","),
 				Itob(Global.current_application_id()),
@@ -139,7 +142,8 @@ def approval_program():
 				Bytes(","),
 				bob_balance,
 				Bytes(","),
-				timestamp
+				timestamp,
+				Bytes("END_STATE_UPDATE"),
 			)) # in bytes "alice_balance, bob_balance"
 	on_initiateChannelClosing = Seq(
 		# can only be called by alice or bob
@@ -164,6 +168,14 @@ def approval_program():
 				Btoi(alice_balance) + Btoi(bob_balance) == App.globalGet(total_deposit),
 			)
 		).Then(
+			# set closing initiator
+			If(Txn.sender() == App.globalGet(alice_address)).Then(
+				App.globalPut(closing_initiator, Bytes("alice"))
+			).Else(
+				App.globalPut(closing_initiator, Bytes("bob"))
+			),
+
+			# set timeout and challenge state update
 			App.globalPut(timeout, Global.round() + App.globalGet(dispute_window)),		# set timeout
 			App.globalPut(latest_state_timestamp, Btoi(timestamp)), 					# store state timestamp
 			App.globalPut(latest_alice_balance, Btoi(alice_balance)),					# store latest balances of alice
@@ -172,13 +184,15 @@ def approval_program():
 		Approve(),
 	)
 
-	algorand_port = Txn.application_args[1]
-	alice_balance = Txn.application_args[2]
-	bob_balance = Txn.application_args[3]
-	timestamp = Txn.application_args[4]
-	alice_signature = Txn.application_args[5] # 64 bytes
-	bob_signature = Txn.application_args[6] # 64 bytes
+	# algorand_port = Txn.application_args[1]
+	# alice_balance = Txn.application_args[2]
+	# bob_balance = Txn.application_args[3]
+	# timestamp = Txn.application_args[4]
+	# alice_signature = Txn.application_args[5] # 64 bytes
+	# bob_signature = Txn.application_args[6] # 64 bytes
 	on_raiseDispute = Seq(
+		# can only be called by anyone to enable third party to raise dispute, preventing dos attacks
+		#
 		If (And(
 				# https://pyteal.readthedocs.io/en/stable/crypto.html
 				Ed25519Verify_Bare(	# cost: 1900, takes 3 arguments: data, sig 64 bytes, key 32 bytes
@@ -192,15 +206,22 @@ def approval_program():
 					App.globalGet(bob_address),
 				),
 				Btoi(alice_balance) + Btoi(bob_balance) == App.globalGet(total_deposit),
-				Btoi(latest_state_timestamp) < Btoi(timestamp),
+				App.globalGet(latest_state_timestamp) < Btoi(timestamp), # indeed a newer state
 			)
-		).Then(
-		# 	# App.globalPut(latest_state_timestamp, Btoi(timestamp)), 						# store state timestamp
-		# 	# App.globalPut(timeout, Global.round() + App.globalGet(dispute_window)),			# set timeout
-		# 	# App.globalPut(latest_alice_balance, Btoi(alice_balance)),				# store latest balances of alice
+		).Then(			
+			# set new state update
+			App.globalPut(latest_state_timestamp, Btoi(timestamp)), 						# store state timestamp
+			App.globalPut(latest_alice_balance, Btoi(alice_balance)),				# store latest balances of alice
 			App.globalPut(latest_bob_balance, Btoi(bob_balance)),					# store latest balances of bob
 
-
+			# punish closing initiator
+			If(App.globalGet(closing_initiator) == Bytes("alice")).Then(
+				# punish alice
+				rebalance(latest_alice_balance, latest_bob_balance, App.globalGet(penalty_reserve)),
+			).Else(
+				# punish bob
+				rebalance(latest_bob_balance, latest_alice_balance, App.globalGet(penalty_reserve)),
+			),
 		),
 		Approve(),  
 	)

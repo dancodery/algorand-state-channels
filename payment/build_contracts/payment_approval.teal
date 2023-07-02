@@ -2,15 +2,15 @@
 txn ApplicationID
 int 0
 ==
-bnz main_l26
+bnz main_l31
 txn OnCompletion
 int UpdateApplication
 ==
-bnz main_l25
+bnz main_l30
 txn OnCompletion
 int CloseOut
 ==
-bnz main_l24
+bnz main_l29
 txn OnCompletion
 int NoOp
 ==
@@ -27,15 +27,15 @@ main_l7:
 txna ApplicationArgs 0
 byte "fund"
 ==
-bnz main_l23
+bnz main_l28
 txna ApplicationArgs 0
 byte "increaseBudget"
 ==
-bnz main_l22
+bnz main_l27
 txna ApplicationArgs 0
 byte "initiateChannelClosing"
 ==
-bnz main_l19
+bnz main_l21
 txna ApplicationArgs 0
 byte "raiseDispute"
 ==
@@ -84,7 +84,9 @@ itxn_field Receiver
 itxn_submit
 b main_l14
 main_l16:
+byte "STATE_UPDATE"
 txna ApplicationArgs 1
+concat
 byte ","
 concat
 global CurrentApplicationID
@@ -101,13 +103,17 @@ concat
 byte ","
 concat
 txna ApplicationArgs 4
+concat
+byte "END_STATE_UPDATE"
 concat
 sha3_256
 txna ApplicationArgs 5
 byte "alice_address"
 app_global_get
 ed25519verify_bare
+byte "STATE_UPDATE"
 txna ApplicationArgs 1
+concat
 byte ","
 concat
 global CurrentApplicationID
@@ -124,6 +130,8 @@ concat
 byte ","
 concat
 txna ApplicationArgs 4
+concat
+byte "END_STATE_UPDATE"
 concat
 sha3_256
 txna ApplicationArgs 6
@@ -141,22 +149,82 @@ app_global_get
 ==
 &&
 byte "latest_timestamp"
-btoi
+app_global_get
 txna ApplicationArgs 4
 btoi
 <
 &&
 bnz main_l18
-main_l17:
 int 1
 return
 main_l18:
+byte "latest_timestamp"
+txna ApplicationArgs 4
+btoi
+app_global_put
+byte "latest_alice_balance"
+txna ApplicationArgs 2
+btoi
+app_global_put
 byte "latest_bob_balance"
 txna ApplicationArgs 3
 btoi
 app_global_put
-b main_l17
-main_l19:
+byte "closing_initiator"
+app_global_get
+byte "alice"
+==
+bnz main_l20
+byte "latest_bob_balance"
+app_global_get
+byte "penalty_reserve"
+app_global_get
+-
+int 0
+>=
+assert
+byte "latest_bob_balance"
+byte "latest_bob_balance"
+app_global_get
+byte "penalty_reserve"
+app_global_get
+-
+app_global_put
+byte "latest_alice_balance"
+byte "latest_alice_balance"
+app_global_get
+byte "penalty_reserve"
+app_global_get
++
+app_global_put
+int 1
+return
+main_l20:
+byte "latest_alice_balance"
+app_global_get
+byte "penalty_reserve"
+app_global_get
+-
+int 0
+>=
+assert
+byte "latest_alice_balance"
+byte "latest_alice_balance"
+app_global_get
+byte "penalty_reserve"
+app_global_get
+-
+app_global_put
+byte "latest_bob_balance"
+byte "latest_bob_balance"
+app_global_get
+byte "penalty_reserve"
+app_global_get
++
+app_global_put
+int 1
+return
+main_l21:
 txn Sender
 byte "alice_address"
 app_global_get
@@ -167,7 +235,9 @@ app_global_get
 ==
 ||
 assert
+byte "STATE_UPDATE"
 txna ApplicationArgs 1
+concat
 byte ","
 concat
 global CurrentApplicationID
@@ -184,13 +254,17 @@ concat
 byte ","
 concat
 txna ApplicationArgs 4
+concat
+byte "END_STATE_UPDATE"
 concat
 sha3_256
 txna ApplicationArgs 5
 byte "alice_address"
 app_global_get
 ed25519verify_bare
+byte "STATE_UPDATE"
 txna ApplicationArgs 1
+concat
 byte ","
 concat
 global CurrentApplicationID
@@ -207,6 +281,8 @@ concat
 byte ","
 concat
 txna ApplicationArgs 4
+concat
+byte "END_STATE_UPDATE"
 concat
 sha3_256
 txna ApplicationArgs 6
@@ -223,11 +299,20 @@ byte "total_deposit"
 app_global_get
 ==
 &&
-bnz main_l21
-main_l20:
+bnz main_l23
+main_l22:
 int 1
 return
-main_l21:
+main_l23:
+txn Sender
+byte "alice_address"
+app_global_get
+==
+bnz main_l26
+byte "closing_initiator"
+byte "bob"
+app_global_put
+main_l25:
 byte "timeout"
 global Round
 byte "dispute_window"
@@ -246,11 +331,16 @@ byte "latest_bob_balance"
 txna ApplicationArgs 3
 btoi
 app_global_put
-b main_l20
-main_l22:
+b main_l22
+main_l26:
+byte "closing_initiator"
+byte "alice"
+app_global_put
+b main_l25
+main_l27:
 int 1
 return
-main_l23:
+main_l28:
 txn GroupIndex
 int 1
 -
@@ -304,13 +394,13 @@ gtxns Amount
 app_global_put
 int 1
 return
-main_l24:
+main_l29:
 int 0
 return
-main_l25:
+main_l30:
 int 0
 return
-main_l26:
+main_l31:
 txn NumAppArgs
 int 3
 ==
