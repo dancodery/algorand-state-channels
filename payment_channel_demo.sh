@@ -75,6 +75,10 @@ echo "Starting the demo..."
 echo "======================================================"
 echo 
 
+# Wait for nodes to be ready
+echo "Waiting for nodes to be ready..."
+wait-for-node asc-alice "ascli getinfo"
+wait-for-node asc-bob "ascli getinfo"
 
 # Resetting Alice and Bob's nodes
 echo "Resetting Alice and Bob's nodes..."
@@ -118,10 +122,15 @@ for ((i=1; i<=${bob_to_alice_payment_rounds}; i++)); do
 	run-in-node asc-bob "ascli pay --partner_address=${alice_address} --amount=${payment_amount}"
 done
 
-# Initiate closing the channel
+# Bob tries to cheat by closing the channel with an old state
 echo
-echo "Alice initiating channel closing..."
-run-in-node asc-alice "ascli initiateclosechannel --partner_address=${bob_address}"
+echo "Bob trying to cheat by closing the channel with an old state..."
+run-in-node asc-bob "ascli trytocheat --partner_address=${alice_address}"
+
+# # Initiate closing the channel
+# echo
+# echo "Alice initiating channel closing..."
+# run-in-node asc-alice "ascli initiateclosechannel --partner_address=${bob_address}"
 
 # sleep for dispute_window * block_time
 echo
@@ -130,8 +139,8 @@ sleep $(echo "${dispute_window} * 4" | bc)
 
 # Finalize closing the channel
 echo
-echo "Alice finalizing channel closing..."
-run-in-node asc-alice "ascli finalizeclosechannel --partner_address=${bob_address}"
+echo "Bob finalizing channel closing..."
+run-in-node asc-bob "ascli finalizeclosechannel --partner_address=${alice_address}"
 
 # Get Alice and Bob's final balances
 alice_final_balance=$(run-in-node asc-alice "ascli getinfo | jq -r .algo_balance") # save Alice's balance as raw string
