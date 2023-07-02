@@ -407,6 +407,9 @@ func (r *rpcServer) FinalizeCloseChannel(ctx context.Context, in *asrpc.Finalize
 		onchain_state.app_id)
 	fmt.Printf("Finalized channel closure for app_id: %v\n\n", onchain_state.app_id)
 
+	// 3. delete on chain state
+	delete(r.server.payment_channels_onchain_states, in.AlgoAddress)
+
 	timestamp_end := timestamppb.Now()
 
 	runtime_recording := &asrpc.RuntimeRecording{
