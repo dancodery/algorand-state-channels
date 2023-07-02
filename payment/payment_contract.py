@@ -184,12 +184,78 @@ def approval_program():
 		Approve(),
 	)
 
-	# algorand_port = Txn.application_args[1]
-	# alice_balance = Txn.application_args[2]
-	# bob_balance = Txn.application_args[3]
-	# timestamp = Txn.application_args[4]
-	# alice_signature = Txn.application_args[5] # 64 bytes
-	# bob_signature = Txn.application_args[6] # 64 bytes
+	hash = Sha3_256( # cost: 130, takes 1 argument: data
+			Concat(
+				Bytes("CLOSE_CHANNEL"),
+				algorand_port,
+				Bytes(","),
+				Itob(Global.current_application_id()),
+				Bytes(","),
+				alice_balance, 
+				Bytes(","),
+				bob_balance,
+				Bytes(","),
+				timestamp,
+				Bytes("END_CLOSE_CHANNEL"),
+			)) # in bytes "alice_balance, bob_balance"
+	on_cooperativeClose = Seq(
+		# can only be called by alice or bob
+		Assert(
+			Or(
+				Txn.sender() == App.globalGet(alice_address),
+				Txn.sender() == App.globalGet(bob_address)
+			)
+		),
+		# can only be called if dispute window has not been initiated
+		Assert(
+			App.globalGet(timeout) == Int(0)
+		),
+		If(
+			And(
+				Ed25519Verify_Bare(
+					hash,
+					alice_signature,
+					App.globalGet(alice_address),
+				),
+				Ed25519Verify_Bare(
+					hash,
+					bob_signature,
+					App.globalGet(bob_address),
+				),
+				Btoi(alice_balance) + Btoi(bob_balance) == App.globalGet(total_deposit),
+			)
+		).Then(
+			App.globalPut(latest_state_timestamp, Btoi(timestamp)), 					# store state timestamp
+			App.globalPut(latest_alice_balance, Btoi(alice_balance)),					# store latest balances of alice
+			App.globalPut(latest_bob_balance, Btoi(bob_balance)),						# store latest balances of bob
+
+			# immediately close channel
+			# send funds to alice
+			InnerTxnBuilder.Begin(),
+			InnerTxnBuilder.SetFields(
+				{
+					TxnField.type_enum: TxnType.Payment,
+					TxnField.sender: Global.current_application_address(),
+					TxnField.amount: App.globalGet(latest_alice_balance) - Global.min_txn_fee(),
+					TxnField.receiver: App.globalGet(alice_address),
+				}
+			),
+			InnerTxnBuilder.Next(),
+
+			# send funds to bob
+			InnerTxnBuilder.SetFields(
+				{
+					TxnField.type_enum: TxnType.Payment,
+					TxnField.sender: Global.current_application_address(),
+					TxnField.amount: App.globalGet(latest_bob_balance) - Global.min_txn_fee(),
+					TxnField.receiver: App.globalGet(bob_address),
+				}
+			),
+			InnerTxnBuilder.Submit(),
+		),
+		Approve(),
+	)
+		
 	on_raiseDispute = Seq(
 		# can only be called by anyone to enable third party to raise dispute, preventing dos attacks
 		#
@@ -270,9 +336,7 @@ def approval_program():
 			[on_call_method == Bytes("initiateChannelClosing"), on_initiateChannelClosing],
 			[on_call_method == Bytes("raiseDispute"), on_raiseDispute],
 			[on_call_method == Bytes("finalizeChannelClosing"), on_finalizeChannelClosing],
-			# [on_call_method == Bytes("updateState"), on_updateState],
-			# [on_call_method == Bytes("updateStateWithTimeout"), on_updateStateWithTimeout],
-
+			[on_call_method == Bytes("cooperativeClose"), on_cooperativeClose],
 		)
 	)
 
