@@ -57,9 +57,15 @@ done
 sandbox_node=${args[0]}
 
 # Install Docker
+echo "Extending file system on node ${sandbox_node}..."
+pos commands launch -- mkdir -p /mnt/sda/docker
+pos commands launch -- mount /dev/nvme0n1 /mnt/sda
+pos commands launch -- mount --rbind /mnt/sda/docker /var/lib/docker
+
 echo "Installing Docker on node ${sandbox_node}..."
 pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${sandbox_node}
 pos commands launch --infile testbed/run_sandbox.sh --queued --name run-sandbox ${sandbox_node}
+
 echo "Sandbox is running on node ${sandbox_node}..."
 
 # 10. Setup for alice and bob
