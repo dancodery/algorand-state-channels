@@ -6,6 +6,7 @@ import (
 
 	"github.com/algorand/go-algorand-sdk/v2/client/kmd"
 	"github.com/algorand/go-algorand-sdk/v2/client/v2/algod"
+	"github.com/algorand/go-algorand-sdk/v2/client/v2/indexer"
 	"github.com/algorand/go-algorand-sdk/v2/crypto"
 	"github.com/algorand/go-algorand-sdk/v2/transaction"
 )
@@ -16,6 +17,9 @@ const (
 
 	KMD_ADDRESS = "http://algorand-algod:4002"
 	KMD_TOKEN   = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+	INDEXER_ADDRESS = "http://algorand-indexer:8980"
+	INDEXER_TOKEN   = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
 	KMD_WALLET_NAME     = "unencrypted-default-wallet"
 	KMD_WALLET_PASSWORD = ""
@@ -36,6 +40,15 @@ func GetKmdClient() kmd.Client {
 	}
 
 	return kmdClient
+}
+
+func GetIndexerClient() *indexer.Client {
+	indexerClient, err := indexer.MakeClient(INDEXER_ADDRESS, INDEXER_TOKEN)
+	if err != nil {
+		log.Fatalf("Failed to create indexer client: %s", err)
+	}
+
+	return indexerClient
 }
 
 func GetSandboxAccounts() ([]crypto.Account, error) {
