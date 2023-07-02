@@ -52,12 +52,9 @@ type paymentChannelOffChainState struct {
 }
 
 type server struct {
-	// started int32
 	algod_client *algod.Client
 	algo_account crypto.Account
 
-	// payment_channel_app_ids              []uint64
-	// payment_channel_state_of_app_id      map[uint64]paymentChannelOnChainState
 	payment_channels_onchain_states      map[string]paymentChannelInfo
 	payment_channels_offchain_states_log map[string]map[int64]paymentChannelOffChainState
 
@@ -328,8 +325,63 @@ func (s *server) handleConnection(conn net.Conn) {
 		fmt.Printf("Alice new balance: %d\n", alice_new_balance)
 		fmt.Printf("Bob new balance: %d\n\n", bob_new_balance)
 
-	case "close_channel":
-		fmt.Println("close_channel")
+	case "close_channel_request":
+		counterparty_address := string(client_request.Args[0])
+		channel_partner_signature := client_request.Args[1]
+
+		// 1. load onchain state
+		onchain_state, ok := s.payment_channels_onchain_states[counterparty_address]
+		if !ok {
+			fmt.Printf("Error: payment channel with address %s does not exist\n", counterparty_address)
+			server_response.Message = "reject"
+			break
+		}
+
+		// 2. load latest off chain state
+		latestOffChainState, err := getLatestOffChainState(s.payment_channels_offchain_states_log[counterparty_address])
+		if err != nil {
+			fmt.Printf("Error getting latest off chain state: %v\n", err)
+			server_response.Message = "reject"
+			break
+		}
+
+		// 3. verify channel partner signature
+		channel_partner_signature_correct := payment.VerifyClose(
+			onchain_state.app_id,
+			latestOffChainState.alice_balance,
+			latestOffChainState.bob_balance,
+			4161,
+			channel_partner_signature,
+			counterparty_address,
+			latestOffChainState.timestamp,
+		)
+		if !channel_partner_signature_correct {
+			fmt.Println("Error: invalid channel partner signature")
+			server_response.Message = "reject"
+			break
+		}
+
+		// 4. sign the state as well
+		my_signature, err := payment.SignClose(
+			onchain_state.app_id,
+			s.algo_account,
+			latestOffChainState.alice_balance,
+			latestOffChainState.bob_balance,
+			4161,
+			latestOffChainState.timestamp,
+		)
+		if err != nil {
+			log.Fatalf("Error signing state: %v\n", err)
+			return
+		}
+
+		// 5. send response to client
+		server_response.Message = "approve"
+		server_response.Data = [][]byte{
+			my_signature,
+		}
+
+		fmt.Printf("Processed close_channel_request with app_id %d\n", onchain_state.app_id)
 	case "pay_response":
 		fmt.Println("pay_response")
 	default:

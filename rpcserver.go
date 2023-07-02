@@ -449,19 +449,88 @@ func (r *rpcServer) CooperativeCloseChannel(ctx context.Context, in *asrpc.Coope
 		return nil, fmt.Errorf("not enough balance to close channel")
 	}
 
-	// 4. call cooperative close channel
-	// payment.CooperativeCloseChannel(
-	// 	r.server.algod_client,
-	// 	r.server.algo_account,
-	// 	onchain_state.bob_address,
-	// 	onchain_state.app_id,
-	// 	latestOffChainState.alice_balance,
-	// 	latestOffChainState.bob_balance,
-	// 	uint64(latestOffChainState.timestamp),
-	// 	latestOffChainState.alice_signature,
-	// 	latestOffChainState.bob_signature)
+	// 4. sign cooperative close state
+	var my_signature []byte
+	my_signature, err = payment.SignClose(
+		onchain_state.app_id,
+		r.server.algo_account,
+		latestOffChainState.alice_balance,
+		latestOffChainState.bob_balance,
+		4161,
+		latestOffChainState.timestamp,
+	)
+	if err != nil {
+		fmt.Printf("Error signing state: %v\n", err)
+	}
+
+	// 5. send cooperative close request to partner node
+	server_response, err := sendRequest(onchain_state.partner_ip, P2PRequest{Command: "close_channel_request", Args: [][]byte{
+		[]byte(r.server.algo_account.Address.String()), // 1. my address
+		my_signature, // 2. my signature
+	}})
+	if err != nil {
+		fmt.Printf("Error sending pay request to partner node: %v\n", err)
+		return nil, err
+	}
+
+	// 6. read partner node's response
+	fmt.Printf("Payment partner node's response: %v\n", server_response.Message)
+	if server_response.Message != "approve" {
+		fmt.Printf("Partner node rejected pay request\n")
+		return nil, fmt.Errorf("partner node rejected pay request")
+	}
+
+	// 7. verify partner node's signature
+	partner_signature := server_response.Data[0]
+
+	partner_verified := payment.VerifyClose(
+		onchain_state.app_id,
+		latestOffChainState.alice_balance,
+		latestOffChainState.bob_balance,
+		4161,
+		partner_signature,
+		in.AlgoAddress,
+		latestOffChainState.timestamp,
+	)
+	if !partner_verified {
+		fmt.Printf("Error: partner node's signature is not valid\n")
+		return nil, fmt.Errorf("partner node's signature is not valid")
+	}
+
+	var is_alice bool
+	if onchain_state.alice_address == r.server.algo_account.Address.String() {
+		is_alice = true
+	} else {
+		is_alice = false
+	}
+
+	var alice_signature []byte
+	var bob_signature []byte
+	if is_alice {
+		alice_signature = my_signature
+		bob_signature = partner_signature
+	} else {
+		alice_signature = partner_signature
+		bob_signature = my_signature
+	}
+
+	// 8. call cooperative close channel
+	payment.CooperativeCloseChannel(
+		r.server.algod_client,
+		r.server.algo_account,
+		in.AlgoAddress,
+		4161,
+		onchain_state.app_id,
+		latestOffChainState.alice_balance,
+		latestOffChainState.bob_balance,
+		uint64(latestOffChainState.timestamp),
+		alice_signature,
+		bob_signature)
 
 	fmt.Printf("Cooperative channel closure for app_id: %v\n\n", onchain_state.app_id)
+
+	// 9. delete payment channel from on chain state
+	delete(r.server.payment_channels_onchain_states, in.AlgoAddress)
 
 	timestamp_end := timestamppb.Now()
 
