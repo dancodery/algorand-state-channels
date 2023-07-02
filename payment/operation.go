@@ -234,6 +234,67 @@ func SignState(
 	return signed_bytes, nil
 }
 
+func SignClose(
+	appID uint64,
+	account crypto.Account,
+	aliceBalance uint64,
+	bobBalance uint64,
+	algorandPort uint64,
+	timestamp int64,
+) ([]byte, error) {
+	data_raw := make([]byte, 0)
+	data_raw = append(data_raw, []byte("CLOSE_CHANNEL")...)
+	data_raw = append(data_raw, uint64ToBytes(algorandPort)...)
+	data_raw = append(data_raw, []byte(",")...)
+	data_raw = append(data_raw, uint64ToBytes(appID)...)
+	data_raw = append(data_raw, []byte(",")...)
+	data_raw = append(data_raw, uint64ToBytes(aliceBalance)...)
+	data_raw = append(data_raw, []byte(",")...)
+	data_raw = append(data_raw, uint64ToBytes(bobBalance)...)
+	data_raw = append(data_raw, []byte(",")...)
+	data_raw = append(data_raw, uint64ToBytes(uint64(timestamp))...)
+	data_raw = append(data_raw, []byte("END_CLOSE_CHANNEL")...)
+	data_hashed := sha3.Sum256(data_raw)
+
+	signed_bytes := ed25519.Sign(account.PrivateKey, data_hashed[:])
+	if signed_bytes == nil {
+		return nil, errors.New("error signing bytes")
+	}
+	return signed_bytes, nil
+}
+
+func VerifyClose(
+	appID uint64,
+	aliceBalance uint64,
+	bobBalance uint64,
+	algorandPort uint64,
+	signature []byte,
+	algo_address string,
+	timestamp int64,
+) bool {
+	data_raw := make([]byte, 0)
+	data_raw = append(data_raw, []byte("CLOSE_CHANNEL")...)
+	data_raw = append(data_raw, uint64ToBytes(algorandPort)...)
+	data_raw = append(data_raw, []byte(",")...)
+	data_raw = append(data_raw, uint64ToBytes(appID)...)
+	data_raw = append(data_raw, []byte(",")...)
+	data_raw = append(data_raw, uint64ToBytes(aliceBalance)...)
+	data_raw = append(data_raw, []byte(",")...)
+	data_raw = append(data_raw, uint64ToBytes(bobBalance)...)
+	data_raw = append(data_raw, []byte(",")...)
+	data_raw = append(data_raw, uint64ToBytes(uint64(timestamp))...)
+	data_raw = append(data_raw, []byte("END_CLOSE_CHANNEL")...)
+	data_hashed := sha3.Sum256(data_raw)
+
+	decoded_address, err := types.DecodeAddress(algo_address)
+	if err != nil {
+		fmt.Printf("Error decoding address: %v\n", err)
+	}
+
+	pub_key := ed25519.PublicKey(decoded_address[:])
+	return ed25519.Verify(pub_key, data_hashed[:], signature)
+}
+
 func VerifyState(
 	appID uint64,
 	aliceBalance uint64,
@@ -451,6 +512,77 @@ func FinalizeCloseChannel(
 	if err != nil {
 		fmt.Printf("Error waiting for confirmation: %v\n", err)
 	}
+}
+
+func CooperativeCloseChannel(
+	algod_client *algod.Client,
+	sender_account crypto.Account,
+	counterparty_address string,
+	// for signed hash
+	algorand_port uint64,
+	app_id uint64,
+	alice_balance uint64,
+	bob_balance uint64,
+	timestamp uint64,
+	// END for signed hash
+	alice_signature []byte,
+	bob_signature []byte,
+) {
+	sp, err := algod_client.SuggestedParams().Do(context.Background())
+	if err != nil {
+		fmt.Printf("Error getting suggested params: %v\n", err)
+	}
+
+	algorandPortBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(algorandPortBytes, algorand_port)
+
+	aliceBalanceBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(aliceBalanceBytes, alice_balance)
+
+	bobBalanceBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(bobBalanceBytes, bob_balance)
+
+	timestampBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(timestampBytes, timestamp)
+
+	app_args := [][]byte{
+		[]byte("cooperativeClose"),
+		// BEGIN SIGNED VALUES
+		algorandPortBytes, // algorand_port
+		aliceBalanceBytes, // alice_balance
+		bobBalanceBytes,   // bob_balance
+		timestampBytes,    // timestamp
+		// END SIGNED VALUES
+		alice_signature,
+		bob_signature,
+	}
+	callCooperativeCloseTxn, err := transaction.MakeApplicationNoOpTx(
+		app_id,   // app_id
+		app_args, // app_args
+		[]string{
+			sender_account.Address.String(),
+			counterparty_address,
+		}, // accounts
+		nil,                    // foreign_apps
+		nil,                    // foreign_assets
+		sp,                     // sp
+		sender_account.Address, // sender
+		nil,                    // note
+		types.Digest{},         // group
+		[32]byte{},             // lease
+		types.ZeroAddress,      // rekey_to
+	)
+	if err != nil {
+		fmt.Printf("Error creating application call 'cooperativeClose' transaction: %v\n", err)
+	}
+
+	// increase budget and send transaction
+	IncreaseBudgetSignAndSendTransaction(
+		algod_client,
+		app_id,
+		sender_account,
+		callCooperativeCloseTxn,
+		3930) // 1x Sha3_256 a 130 + 2x Ed25519Verify a 1900
 }
 
 func uint64ToBytes(val uint64) []byte {
