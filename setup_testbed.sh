@@ -42,7 +42,7 @@ done
 
 # 6. Wait for nodes to be ready, so that they can reboot in parallel
 echo "Waiting for nodes to be ready..."
-sleep 120 # 120 works, 117 not
+sleep 125 # 130 works, 120 not
 echo
 
 for ((i=0; i<${#args[@]}; i++)); do
@@ -57,11 +57,7 @@ done
 sandbox_node=${args[0]}
 
 echo "Extending file system on node ${sandbox_node}..."
-pos commands launch ${sandbox_node} -- mkfs.ext4 -F /dev/nvme0n1
-pos commands launch ${sandbox_node} -- mkdir -p /mnt/sda/docker
-pos commands launch ${sandbox_node} -- mkdir -p /var/lib/docker
-pos commands launch ${sandbox_node} -- mount /dev/nvme0n1 /mnt/sda
-pos commands launch ${sandbox_node} -- mount --rbind /mnt/sda/docker /var/lib/docker
+pos commands launch --infile testbed/extend_filesystem.sh --queued --name extend-filesystem ${sandbox_node}
 
 echo "Installing Docker on node ${sandbox_node}..."
 pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${sandbox_node}
