@@ -56,19 +56,18 @@ done
 # 9. Setup algorand sandbox
 sandbox_node=${args[0]}
 
-# Install Docker
-echo "Installing Docker on node ${sandbox_node}..."
-pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${sandbox_node}
-
 echo "Extending file system on node ${sandbox_node}..."
-pos commands launch ${sandbox_node} -- mkdir -p /mnt/sda/docker
 pos commands launch ${sandbox_node} -- mkfs.ext4 -F /dev/nvme0n1
+pos commands launch ${sandbox_node} -- mkdir -p /mnt/sda/docker
+pos commands launch ${sandbox_node} -- mkdir -p /var/lib/docker
 pos commands launch ${sandbox_node} -- mount /dev/nvme0n1 /mnt/sda
 pos commands launch ${sandbox_node} -- mount --rbind /mnt/sda/docker /var/lib/docker
 
-pos commands launch --infile testbed/run_sandbox.sh --queued --name run-sandbox ${sandbox_node}
+echo "Installing Docker on node ${sandbox_node}..."
+pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${sandbox_node}
 
-echo "Sandbox is running on node ${sandbox_node}..."
+echo "Running sandbox on node ${sandbox_node}..."
+pos commands launch --infile testbed/run_sandbox.sh --queued --name run-sandbox ${sandbox_node}
 
 # 10. Setup for alice and bob
 # alice_node=${args[1]}
