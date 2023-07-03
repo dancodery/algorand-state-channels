@@ -33,20 +33,20 @@ for ((i=0; i<${#args[@]}; i++)); do
     echo "Loading image for node ${args[i]}..."
     pos nodes image ${args[i]} debian-bullseye
 
-    # reset node and reboot
+    # 6. reset node and reboot
     echo "Reset node ${args[i]}..."
     pos nodes reset --non-blocking ${args[i]} 
 
     echo
 done
 
-# 6. Wait for nodes to be ready, so that they can reboot in parallel
+# 7. Wait for nodes to be ready, so that they can reboot in parallel
 echo "Waiting for nodes to be ready..."
 sleep 125 # 130 works, 120 not
 echo
 
 for ((i=0; i<${#args[@]}; i++)); do
-    # 7. Copy files to nodes
+    # 8. Copy files to nodes
     echo "Copying files to node ${args[i]}..."
     pos nodes copy --recursive --dest /root ${args[i]} /home/gockel/algorand-state-channels
 
@@ -66,10 +66,10 @@ echo "Running sandbox on node ${sandbox_node}..."
 pos commands launch --infile testbed/run_sandbox.sh --queued --name run-sandbox ${sandbox_node}
 
 # 10. Setup for alice and bob
-# alice_node=${args[1]}
-# bob_node=${args[2]}
-# pos commands launch --infile testbed/docker_setup.sh --queued --name docker-setup ${alice_node}
-# pos commands launch --infile testbed/docker_setup.sh --queued --name docker-setup ${bob_node}
+alice_node=${args[1]}
+bob_node=${args[2]}
+pos commands launch --infile testbed/docker_setup.sh --queued --name docker-setup ${alice_node}
+pos commands launch --infile testbed/docker_setup.sh --queued --name docker-setup ${bob_node}
 
 
 echo 
