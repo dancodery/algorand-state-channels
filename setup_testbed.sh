@@ -42,7 +42,7 @@ done
 
 # 6. Wait for nodes to be ready, so that they can reboot in parallel
 echo "Waiting for nodes to be ready..."
-sleep 117 # 117 works, 115 not
+sleep 120 # 120 works, 117 not
 echo
 
 for ((i=0; i<${#args[@]}; i++)); do
