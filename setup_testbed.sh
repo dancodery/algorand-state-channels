@@ -42,6 +42,13 @@ check_command_output() {
     fi
 }
 
+# Function to convert FQDN to IP address
+fqdn_to_ip() {
+    local fqdn=$1
+    local ip=$(dig +short $fqdn)
+    echo "$ip"
+}
+
 # 2. Free hosts
 for ((i=0; i<${#args[@]}; i++)); do
     echo "Freeing node ${args[i]}..."
@@ -82,9 +89,16 @@ done
 echo
 
 # 8. Save node IPs
-sandbox_ip=$()
-alice_ip=$()
-bob_ip=$()
+sandbox_ip=$(fqdn_to_ip "${args[0]}.blockchain.net.in.tum.de")
+alice_ip=$(fqdn_to_ip "${args[1]}.blockchain.net.in.tum.de")
+bob_ip=$(fqdn_to_ip "${args[2]}.blockchain.net.in.tum.de")
+
+# Print the IP addresses
+echo
+echo "Sandbox IP: $sandbox_ip"
+echo "Alice IP: $alice_ip"
+echo "Bob IP: $bob_ip"
+echo
 
 for ((i=0; i<${#args[@]}; i++)); do
     # 9. Copy files to nodes
