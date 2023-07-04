@@ -42,7 +42,7 @@ done
 
 # 7. Wait for nodes to be ready, so that they can reboot in parallel
 echo "Waiting for nodes to be ready..."
-sleep 125 # 130 works, 120 not
+sleep 145 # 130 works, 120 not
 echo
 
 for ((i=0; i<${#args[@]}; i++)); do
@@ -72,10 +72,10 @@ alice_node=${args[1]}
 bob_node=${args[2]}
 
 echo "Installing Docker on node ${alice_node}..."
-pos commands launch --infile testbed/docker_setup.sh --queued --name docker-setup ${alice_node}
+pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${alice_node}
 
 echo "Installing Docker on node ${bob_node}..."
-pos commands launch --infile testbed/docker_setup.sh --queued --name docker-setup ${bob_node}
+pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${bob_node}
 
 
 echo 
