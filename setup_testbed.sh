@@ -1,39 +1,17 @@
 #!/bin/bash
 
-# print out executed commands
-# set -x
+####### DEFINE FUNCTIONS #######
+# Define the help function
+help() {
+    echo "Usage: $0 --config_file=<file> node1 node2 node3 [-h]"
+    echo "Options:"
+    echo "  --config_file=<file>: Specify the configuration file"
+    echo "  node1 node2 node3: Specify the nodes to use"
+    echo "  -h: Show help"
+    exit 1
+}
 
-# stop program in case of error
-set -e
-
-# 1. Read node arguments into an array
-args=("$@")
-node_names=()
-
-# Find the position of config_file argument
-config_index=-1
-for i in "${!args[@]}"; do
-    echo "A Arg $i: ${args[i]}"
-done
-
-for ((i=0; i<${#args[@]}; i++)); do
-    echo "B Arg $i: ${args[i]}"
-    if [[ ${args[i]} == "--config_file="* ]]; then
-        config_index=$i
-        break
-    fi
-done
-
-echo "Config index: $config_index"
-
-
-# Print the node names
-for node in "${node_names[@]}"; do
-  echo "Node: $node"
-done
-
-return 0
-
+# Function to check if all nodes are booted
 check_nodes_booted() {
     booted_nodes=0
 
@@ -73,6 +51,60 @@ fqdn_to_ip() {
     local ip=$(dig +short $fqdn)
     echo "$ip"
 }
+
+####### END DEFINE FUNCTIONS #######
+
+# print out executed commands
+# set -x
+
+# stop program in case of error
+set -e
+
+# 1. Read node arguments into an array
+
+# Parse command-line arguments
+CONFIG_FILE=""
+node_names=()
+for arg in "$@"; do
+	case $arg in
+		--config_file=*)
+			CONFIG_FILE="${arg#*=}"
+			;;
+		-h|--help)
+			help
+			exit 0
+			;;
+		*)
+            node_names+=("$arg")
+			;;
+	esac
+done
+
+# Loading configuration file
+if [ -z "$CONFIG_FILE" ]; then
+    help
+	exit 1
+fi
+source "$CONFIG_FILE"
+
+echo "Configuration values:"
+echo "======================================================"
+echo "funding_amount=$funding_amount"
+echo "penalty_reserve=$penalty_reserve"
+echo "dispute_window=$dispute_window"
+echo "alice_to_bob_payment_rounds=$alice_to_bob_payment_rounds"
+echo "bob_to_alice_payment_rounds=$bob_to_alice_payment_rounds"
+echo "payment_amount=$payment_amount"
+echo
+
+# Print the node names
+for node in "${node_names[@]}"; do
+  echo "Node: $node"
+done
+
+return 0
+
+
 
 # 2. Free hosts
 for ((i=0; i<${#node_names[@]}; i++)); do
