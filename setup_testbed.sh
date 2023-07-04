@@ -144,3 +144,5 @@ pos commands launch --infile testbed/start_node.sh --queued --name start-node ${
 echo 
 
 # 13. Start measurements
+echo "Starting measurements..."
+source testbed/start_measurements.sh
