@@ -81,9 +81,13 @@ while ! check_nodes_booted; do
 done
 echo
 
+# 8. Save node IPs
+sandbox_ip=$()
+alice_ip=$()
+bob_ip=$()
 
 for ((i=0; i<${#args[@]}; i++)); do
-    # 8. Copy files to nodes
+    # 9. Copy files to nodes
     echo "Copying files to node ${args[i]}..."
     pos nodes copy --recursive --dest /root ${args[i]} /home/gockel/algorand-state-channels
 
@@ -91,7 +95,7 @@ for ((i=0; i<${#args[@]}; i++)); do
 done
 
 
-# 9. Setup Docker for alice and bob
+# 10. Setup Docker for alice and bob
 alice_node=${args[1]}
 bob_node=${args[2]}
 
@@ -102,7 +106,7 @@ echo "Installing Docker on node ${bob_node}..."
 pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${bob_node}
 
 
-# 10. Setup algorand sandbox
+# 11. Setup algorand sandbox
 sandbox_node=${args[0]}
 
 echo "Extending file system on node ${sandbox_node}..."
@@ -117,7 +121,7 @@ pos commands launch --infile testbed/run_sandbox.sh --name run-sandbox ${sandbox
 echo
 
 
-# 11. Start nodes
+# 12. Start alice and bob nodes
 echo "Starting node ${alice_node}..."
 pos commands launch --infile testbed/start_node.sh --queued --name start-node ${alice_node}
 
@@ -126,4 +130,4 @@ pos commands launch --infile testbed/start_node.sh --queued --name start-node ${
 
 echo 
 
-# 12. Start measurements
+# 13. Start measurements
