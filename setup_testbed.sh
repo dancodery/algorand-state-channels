@@ -145,4 +145,4 @@ echo
 
 # 13. Start measurements
 echo "Starting measurements..."
-source testbed/start_measurements.sh
+source testbed/run_measurements.sh
