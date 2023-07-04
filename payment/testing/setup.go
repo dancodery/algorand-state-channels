@@ -2,6 +2,7 @@ package testing
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 
@@ -35,6 +36,7 @@ func getEnvOrDefault(key, defaultValue string) string {
 
 func GetAlgodClient() *algod.Client {
 	address := getEnvOrDefault("ALGOD_ADDRESS", DEFAULT_ALGOD_ADDRESS)
+	fmt.Println("algod address: ", address)
 
 	algodClient, err := algod.MakeClient(address, ALGOD_TOKEN)
 	if err != nil {
@@ -45,6 +47,7 @@ func GetAlgodClient() *algod.Client {
 
 func GetKmdClient() kmd.Client {
 	address := getEnvOrDefault("KMD_ADDRESS", DEFAULT_KMD_ADDRESS)
+	fmt.Println("kmd address: ", address)
 
 	kmdClient, err := kmd.MakeClient(address, KMD_TOKEN)
 	if err != nil {
@@ -56,6 +59,7 @@ func GetKmdClient() kmd.Client {
 
 func GetIndexerClient() *indexer.Client {
 	address := getEnvOrDefault("INDEXER_ADDRESS", DEFAULT_INDEXER_ADDRESS)
+	fmt.Println("indexer address: ", address)
 
 	indexerClient, err := indexer.MakeClient(address, INDEXER_TOKEN)
 	if err != nil {
