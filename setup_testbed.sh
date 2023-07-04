@@ -12,11 +12,14 @@ args=("$@")
 check_nodes_booted() {
     booted_nodes = 0
 
-    while read -r line; do
+    while read -r id status; do
         echo
         echo "ID: "
         echo "$id"
         echo 
+        echo "Status: "
+        echo "$status"
+        echo
         echo "Line: "
         echo "$line"
         echo
