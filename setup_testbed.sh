@@ -125,3 +125,5 @@ echo "Starting node ${bob_node}..."
 pos commands launch --infile testbed/start_node.sh --queued --name start-node ${bob_node}
 
 echo 
+
+# 12. Start measurements

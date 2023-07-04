@@ -3,6 +3,7 @@ package testing
 import (
 	"context"
 	"log"
+	"os"
 
 	"github.com/algorand/go-algorand-sdk/v2/client/kmd"
 	"github.com/algorand/go-algorand-sdk/v2/client/v2/algod"
@@ -12,21 +13,30 @@ import (
 )
 
 const (
-	ALGOD_ADDRESS = "http://algorand-algod:4001"
-	ALGOD_TOKEN   = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	DEFAULT_ALGOD_ADDRESS = "http://algorand-algod:4001"
+	ALGOD_TOKEN           = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
-	KMD_ADDRESS = "http://algorand-algod:4002"
-	KMD_TOKEN   = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	DEFAULT_KMD_ADDRESS = "http://algorand-algod:4002"
+	KMD_TOKEN           = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
-	INDEXER_ADDRESS = "http://algorand-indexer:8980"
-	INDEXER_TOKEN   = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+	DEFAULT_INDEXER_ADDRESS = "http://algorand-indexer:8980"
+	INDEXER_TOKEN           = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
 	KMD_WALLET_NAME     = "unencrypted-default-wallet"
 	KMD_WALLET_PASSWORD = ""
 )
 
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
 func GetAlgodClient() *algod.Client {
-	algodClient, err := algod.MakeClient(ALGOD_ADDRESS, ALGOD_TOKEN)
+	address := getEnvOrDefault("ALGOD_ADDRESS", DEFAULT_ALGOD_ADDRESS)
+
+	algodClient, err := algod.MakeClient(address, ALGOD_TOKEN)
 	if err != nil {
 		log.Fatalf("failed to make algod client: %v\n", err)
 	}
@@ -34,7 +44,9 @@ func GetAlgodClient() *algod.Client {
 }
 
 func GetKmdClient() kmd.Client {
-	kmdClient, err := kmd.MakeClient(KMD_ADDRESS, KMD_TOKEN)
+	address := getEnvOrDefault("KMD_ADDRESS", DEFAULT_KMD_ADDRESS)
+
+	kmdClient, err := kmd.MakeClient(address, KMD_TOKEN)
 	if err != nil {
 		log.Fatalf("Failed to create kmd client: %s", err)
 	}
@@ -43,7 +55,9 @@ func GetKmdClient() kmd.Client {
 }
 
 func GetIndexerClient() *indexer.Client {
-	indexerClient, err := indexer.MakeClient(INDEXER_ADDRESS, INDEXER_TOKEN)
+	address := getEnvOrDefault("INDEXER_ADDRESS", DEFAULT_INDEXER_ADDRESS)
+
+	indexerClient, err := indexer.MakeClient(address, INDEXER_TOKEN)
 	if err != nil {
 		log.Fatalf("Failed to create indexer client: %s", err)
 	}
