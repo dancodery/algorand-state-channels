@@ -173,10 +173,10 @@ sandbox_node=${node_names[0]}
 echo "Extending file system on node ${sandbox_node}..."
 pos commands launch --infile testbed/extend_filesystem.sh --name extend-filesystem ${sandbox_node}
 
-echo "Installing Docker on node ${sandbox_node}..."
+echo "Installing docker on node ${sandbox_node}..."
 pos commands launch --infile testbed/install_docker.sh --name docker-setup ${sandbox_node}
 
-echo "Running sandbox on node ${sandbox_node}..."
+echo "Running algorand sandbox on node ${sandbox_node}..."
 pos commands launch --infile testbed/run_sandbox.sh --name run-sandbox ${sandbox_node}
 
 echo
@@ -185,9 +185,19 @@ echo
 # 12. Start alice and bob nodes
 echo "Starting node ${alice_node}..."
 pos commands launch --infile testbed/start_node.sh --queued --name start-node ${alice_node}
+pos commands launch --name run-container ${alice_node} docker run -d --name asc-my-node -p 28547:28547 \
+                                            -e ALGOD_ADDRESS="http://${sandbox_ip}:4001" \
+                                            -e KMD_ADDRESS="http://${sandbox_ip}:4002" \
+                                            -e INDEXER_ADDRESS="http://${sandbox_ip}:8980" \
+                                                asc-my-node
 
 echo "Starting node ${bob_node}..."
 pos commands launch --infile testbed/start_node.sh --queued --name start-node ${bob_node}
+pos commands launch --name run-container ${bob_node} docker run -d --name asc-my-node -p 28547:28547 \
+                                            -e ALGOD_ADDRESS="http://${sandbox_ip}:4001" \
+                                            -e KMD_ADDRESS="http://${sandbox_ip}:4002" \
+                                            -e INDEXER_ADDRESS="http://${sandbox_ip}:8980" \
+                                                asc-my-node
 
 echo 
 
