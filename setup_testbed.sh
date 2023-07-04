@@ -13,15 +13,16 @@ check_nodes_booted() {
     booted_nodes = 0
 
     while read -r id status; do
+        if [[ " ${args[@]} " =~ " $id " ]] && [[ $status == "booted" ]]; then
+            echo "Node $id is booted"
+            booted_nodes=$((booted_nodes+1))
+        fi
         echo
         echo "ID: "
         echo "$id"
         echo 
         echo "Status: "
         echo "$status"
-        echo
-        echo "Line: "
-        echo "$line"
         echo
     done < <(pos nodes list | awk '{print $1, $3}')
     
