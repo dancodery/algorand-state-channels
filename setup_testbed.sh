@@ -72,17 +72,17 @@ for ((i=0; i<${#args[@]}; i++)); do
 done
 
 
-# # 9. Setup algorand sandbox
-# sandbox_node=${args[0]}
+# 9. Setup algorand sandbox
+sandbox_node=${args[0]}
 
-# echo "Extending file system on node ${sandbox_node}..."
-# pos commands launch --infile testbed/extend_filesystem.sh --queued --name extend-filesystem ${sandbox_node}
+echo "Extending file system on node ${sandbox_node}..."
+pos commands launch --infile testbed/extend_filesystem.sh --queued --name extend-filesystem ${sandbox_node}
 
-# echo "Installing Docker on node ${sandbox_node}..."
-# pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${sandbox_node}
+echo "Installing Docker on node ${sandbox_node}..."
+pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${sandbox_node}
 
-# echo "Running sandbox on node ${sandbox_node}..."
-# pos commands launch --infile testbed/run_sandbox.sh --queued --name run-sandbox ${sandbox_node}
+echo "Running sandbox on node ${sandbox_node}..."
+pos commands launch --infile testbed/run_sandbox.sh --queued --name run-sandbox ${sandbox_node}
 
 
 # # 10. Setup for alice and bob
