@@ -97,15 +97,6 @@ echo "bob_to_alice_payment_rounds=$bob_to_alice_payment_rounds"
 echo "payment_amount=$payment_amount"
 echo
 
-# Print the node names
-for node in "${node_names[@]}"; do
-  echo "Node: $node"
-done
-
-return 0
-
-
-
 # 2. Free hosts
 for ((i=0; i<${#node_names[@]}; i++)); do
     echo "Freeing node ${node_names[i]}..."
