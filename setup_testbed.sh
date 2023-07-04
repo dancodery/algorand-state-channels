@@ -20,7 +20,6 @@ check_nodes_booted() {
         echo "Line: "
         echo "$line"
         echo
-        if 
     done < <(pos nodes list | awk '{print $1, $3}')
     
     if [[ $booted_nodes -eq ${#args[@]} ]]; then
