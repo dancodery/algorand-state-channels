@@ -7,8 +7,24 @@
 set -e
 
 # 1. Read node arguments into an array
-node_names=("$@")
+args=("$@")
+node_names=()
 
+# Find the position of config_file argument
+config_index=-1
+for i in "${!args[@]}"; do
+    echo "Arg $i: ${args[i]}"
+done
+
+for ((i=0; i<${#args[@]}; i++)); do
+    echo "Arg $i: ${args[i]}"
+    if [[ ${args[i]} == "--config_file="* ]]; then
+        config_index=$i
+        break
+    fi
+done
+
+echo "Config index: $config_index"
 
 
 # Print the node names
