@@ -26,6 +26,16 @@ check_nodes_booted() {
     fi
 }
 
+# Function to check command output for specific keywords
+check_command_output() {
+    local command="$1"
+    local keywords="$2"
+
+    output=$(eval "$command")
+
+    echo "$output" 
+}
+
 # 2. Free hosts
 for ((i=0; i<${#args[@]}; i++)); do
     echo "Freeing node ${args[i]}..."
@@ -58,7 +68,7 @@ for ((i=0; i<${#args[@]}; i++)); do
 done
 
 # 7. Wait for nodes to be ready
-echo "Waiting for nodes to be ready..."
+echo "Waiting for nodes to boot..."
 while ! check_nodes_booted; do
     sleep 5
 done
@@ -86,6 +96,8 @@ pos commands launch --infile testbed/install_docker.sh --queued --name docker-se
 echo "Running sandbox on node ${sandbox_node}..."
 pos commands launch --infile testbed/run_sandbox.sh --queued --name run-sandbox ${sandbox_node}
 
+echo
+
 
 # 10. Setup for alice and bob
 alice_node=${args[1]}
@@ -97,12 +109,27 @@ pos commands launch --infile testbed/install_docker.sh --queued --name docker-se
 echo "Installing Docker on node ${bob_node}..."
 pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${bob_node}
 
-# 13. Wait for sandbox to be ready
+# 11. Wait for sandbox to be ready
 echo "Waiting for sandbox to be ready..."
+while ! check_command_output "pos commands launch -v ${sandbox_node} -- ./sandbox/sandbox test" "Test command forwarding"; do
+    sleep 5
+done
+echo "Sandbox is ready."
 
 # TODO
 # 1. option 
 # ./sandbox/sandbox test
+# root@dogecoin:~# ./sandbox/sandbox test
+
+# Test command forwarding...
+# ~$ docker exec -it algod uname -a
+# service "algod" is not running container #1
+
+# ./sandbox/sandbox status -v
+
+# algod - goal node status
+# service "algod" is not running container #1
+
 # 2. option:
 # ./sandbox/sandbox status -v
 
