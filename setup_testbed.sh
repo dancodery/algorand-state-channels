@@ -13,11 +13,11 @@ node_names=()
 # Find the position of config_file argument
 config_index=-1
 for i in "${!args[@]}"; do
-    echo "Arg $i: ${args[i]}"
+    echo "A Arg $i: ${args[i]}"
 done
 
 for ((i=0; i<${#args[@]}; i++)); do
-    echo "Arg $i: ${args[i]}"
+    echo "B Arg $i: ${args[i]}"
     if [[ ${args[i]} == "--config_file="* ]]; then
         config_index=$i
         break
