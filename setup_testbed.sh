@@ -10,11 +10,11 @@ set -e
 args=("$@")
 
 check_nodes_booted() {
-    booted_nodes = 0
+    booted_nodes=0
 
     while read -r id status; do
         if [[ " ${args[@]} " =~ " $id " ]] && [[ $status == "booted" ]]; then
-            echo "Node $id is booted"
+            echo "Testbed node $id is booted."
             ((booted_nodes++))
         fi
     done < <(pos nodes list | awk '{print $1, $3}')
@@ -63,14 +63,13 @@ while ! check_nodes_booted; do
 done
 
 
+for ((i=0; i<${#args[@]}; i++)); do
+    # 8. Copy files to nodes
+    echo "Copying files to node ${args[i]}..."
+    pos nodes copy --recursive --dest /root ${args[i]} /home/gockel/algorand-state-channels
 
-# for ((i=0; i<${#args[@]}; i++)); do
-#     # 8. Copy files to nodes
-#     echo "Copying files to node ${args[i]}..."
-#     pos nodes copy --recursive --dest /root ${args[i]} /home/gockel/algorand-state-channels
-
-#     echo
-# done
+    echo
+done
 
 
 # # 9. Setup algorand sandbox
