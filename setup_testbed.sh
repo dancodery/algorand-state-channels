@@ -7,19 +7,28 @@
 set -e
 
 # 1. Read node arguments into an array
-args=("$@")
+node_names=("$@")
+
+
+
+# Print the node names
+for node in "${node_names[@]}"; do
+  echo "Node: $node"
+done
+
+return 0
 
 check_nodes_booted() {
     booted_nodes=0
 
     while read -r id status; do
-        if [[ " ${args[@]} " =~ " $id " ]] && [[ $status == "booted" ]]; then
+        if [[ " ${node_names[@]} " =~ " $id " ]] && [[ $status == "booted" ]]; then
             echo "Testbed node $id is booted."
             ((booted_nodes++))
         fi
     done < <(pos nodes list | awk '{print $1, $3}')
     
-    if [[ $booted_nodes -eq ${#args[@]} ]]; then
+    if [[ $booted_nodes -eq ${#node_names[@]} ]]; then
         return 0
     else
         return 1
@@ -50,15 +59,15 @@ fqdn_to_ip() {
 }
 
 # 2. Free hosts
-for ((i=0; i<${#args[@]}; i++)); do
-    echo "Freeing node ${args[i]}..."
-    pos allocations free -k ${args[i]}
+for ((i=0; i<${#node_names[@]}; i++)); do
+    echo "Freeing node ${node_names[i]}..."
+    pos allocations free -k ${node_names[i]}
 done
 echo
 
 # 3. Allocate nodes
-echo "Allocating nodes ${args[@]}..."
-allocate_output=$(pos allocations allocate "${args[@]}")
+echo "Allocating nodes ${node_names[@]}..."
+allocate_output=$(pos allocations allocate "${node_names[@]}")
 
 # 4. Save variables
 allocation_id=$(echo "$allocate_output" | awk -F ': ' '/Allocation ID:/ {gsub(/[()]/,"",$2); print $2}')
@@ -68,14 +77,14 @@ echo "Result Directory: $result_directory"
 echo
 
 # 5. Load images for nodes individually
-for ((i=0; i<${#args[@]}; i++)); do
+for ((i=0; i<${#node_names[@]}; i++)); do
     # load image
-    echo "Loading image for node ${args[i]}..."
-    pos nodes image ${args[i]} debian-bullseye
+    echo "Loading image for node ${node_names[i]}..."
+    pos nodes image ${node_names[i]} debian-bullseye
 
     # 6. reset node and reboot
-    echo "Reset node ${args[i]}..."
-    pos nodes reset --non-blocking ${args[i]} 
+    echo "Reset node ${node_names[i]}..."
+    pos nodes reset --non-blocking ${node_names[i]} 
 
     echo
 done
@@ -89,9 +98,9 @@ done
 echo
 
 # 8. Save node IPs
-sandbox_ip=$(fqdn_to_ip "${args[0]}.blockchain.net.in.tum.de")
-alice_ip=$(fqdn_to_ip "${args[1]}.blockchain.net.in.tum.de")
-bob_ip=$(fqdn_to_ip "${args[2]}.blockchain.net.in.tum.de")
+sandbox_ip=$(fqdn_to_ip "${node_names[0]}.blockchain.net.in.tum.de")
+alice_ip=$(fqdn_to_ip "${node_names[1]}.blockchain.net.in.tum.de")
+bob_ip=$(fqdn_to_ip "${node_names[2]}.blockchain.net.in.tum.de")
 
 # Print the IP addresses
 echo "Sandbox IP: $sandbox_ip"
@@ -99,18 +108,18 @@ echo "Alice IP: $alice_ip"
 echo "Bob IP: $bob_ip"
 echo
 
-for ((i=0; i<${#args[@]}; i++)); do
+for ((i=0; i<${#node_names[@]}; i++)); do
     # 9. Copy files to nodes
-    echo "Copying files to node ${args[i]}..."
-    pos nodes copy --recursive --dest /root ${args[i]} /home/gockel/algorand-state-channels
+    echo "Copying files to node ${node_names[i]}..."
+    pos nodes copy --recursive --dest /root ${node_names[i]} /home/gockel/algorand-state-channels
 
     echo
 done
 
 
 # 10. Setup Docker for alice and bob
-alice_node=${args[1]}
-bob_node=${args[2]}
+alice_node=${node_names[1]}
+bob_node=${node_names[2]}
 
 echo "Installing Docker on node ${alice_node}..."
 pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${alice_node}
@@ -120,7 +129,7 @@ pos commands launch --infile testbed/install_docker.sh --queued --name docker-se
 
 
 # 11. Setup algorand sandbox
-sandbox_node=${args[0]}
+sandbox_node=${node_names[0]}
 
 echo "Extending file system on node ${sandbox_node}..."
 pos commands launch --infile testbed/extend_filesystem.sh --name extend-filesystem ${sandbox_node}
