@@ -6,9 +6,22 @@
 # stop program in case of error
 set -e
 
-
 # 1. Read node arguments into an array
 args=("$@")
+
+check_nodes_booted() {
+    booted_nodes = 0
+
+    while read -r line; do
+        echo "$line"
+    done < <(pos nodes list | awk '{print $1, $3}')
+    
+    if [[ $booted_nodes -eq ${#args[@]} ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
 
 # 2. Free hosts
 for ((i=0; i<${#args[@]}; i++)); do
@@ -42,40 +55,43 @@ done
 
 # 7. Wait for nodes to be ready, so that they can reboot in parallel
 echo "Waiting for nodes to be ready..."
-sleep 145 # 130 works, 120 not
-echo
-
-for ((i=0; i<${#args[@]}; i++)); do
-    # 8. Copy files to nodes
-    echo "Copying files to node ${args[i]}..."
-    pos nodes copy --recursive --dest /root ${args[i]} /home/gockel/algorand-state-channels
-
-    echo
+while ! check_nodes_booted; do
+    sleep 5
 done
 
 
-# 9. Setup algorand sandbox
-sandbox_node=${args[0]}
 
-echo "Extending file system on node ${sandbox_node}..."
-pos commands launch --infile testbed/extend_filesystem.sh --queued --name extend-filesystem ${sandbox_node}
+# for ((i=0; i<${#args[@]}; i++)); do
+#     # 8. Copy files to nodes
+#     echo "Copying files to node ${args[i]}..."
+#     pos nodes copy --recursive --dest /root ${args[i]} /home/gockel/algorand-state-channels
 
-echo "Installing Docker on node ${sandbox_node}..."
-pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${sandbox_node}
-
-echo "Running sandbox on node ${sandbox_node}..."
-pos commands launch --infile testbed/run_sandbox.sh --queued --name run-sandbox ${sandbox_node}
+#     echo
+# done
 
 
-# 10. Setup for alice and bob
-alice_node=${args[1]}
-bob_node=${args[2]}
+# # 9. Setup algorand sandbox
+# sandbox_node=${args[0]}
 
-echo "Installing Docker on node ${alice_node}..."
-pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${alice_node}
+# echo "Extending file system on node ${sandbox_node}..."
+# pos commands launch --infile testbed/extend_filesystem.sh --queued --name extend-filesystem ${sandbox_node}
 
-echo "Installing Docker on node ${bob_node}..."
-pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${bob_node}
+# echo "Installing Docker on node ${sandbox_node}..."
+# pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${sandbox_node}
+
+# echo "Running sandbox on node ${sandbox_node}..."
+# pos commands launch --infile testbed/run_sandbox.sh --queued --name run-sandbox ${sandbox_node}
 
 
-echo 
+# # 10. Setup for alice and bob
+# alice_node=${args[1]}
+# bob_node=${args[2]}
+
+# echo "Installing Docker on node ${alice_node}..."
+# pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${alice_node}
+
+# echo "Installing Docker on node ${bob_node}..."
+# pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${bob_node}
+
+
+# echo 
