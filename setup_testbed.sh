@@ -15,15 +15,8 @@ check_nodes_booted() {
     while read -r id status; do
         if [[ " ${args[@]} " =~ " $id " ]] && [[ $status == "booted" ]]; then
             echo "Node $id is booted"
-            booted_nodes=$((booted_nodes+1))
+            ((booted_nodes++))
         fi
-        echo
-        echo "ID: "
-        echo "$id"
-        echo 
-        echo "Status: "
-        echo "$status"
-        echo
     done < <(pos nodes list | awk '{print $1, $3}')
     
     if [[ $booted_nodes -eq ${#args[@]} ]]; then
@@ -63,7 +56,7 @@ for ((i=0; i<${#args[@]}; i++)); do
     echo
 done
 
-# 7. Wait for nodes to be ready, so that they can reboot in parallel
+# 7. Wait for nodes to be ready
 echo "Waiting for nodes to be ready..."
 while ! check_nodes_booted; do
     sleep 5
