@@ -34,6 +34,12 @@ check_command_output() {
     output=$(eval "$command")
 
     echo "$output" 
+    # Check if the keyword is present in the output
+    if echo "$output" | grep -q "$keyword"; then
+        return 0  # Keyword found, command is ready
+    else
+        return 1  # Keyword not found, command is not ready
+    fi
 }
 
 # 2. Free hosts
@@ -67,7 +73,8 @@ for ((i=0; i<${#args[@]}; i++)); do
     echo
 done
 
-# 7. Wait for nodes to be ready
+
+# 7. Wait for nodes to be booted
 echo "Waiting for nodes to boot..."
 while ! check_nodes_booted; do
     sleep 5
@@ -84,7 +91,18 @@ for ((i=0; i<${#args[@]}; i++)); do
 done
 
 
-# 9. Setup algorand sandbox
+# 9. Setup Docker for alice and bob
+alice_node=${args[1]}
+bob_node=${args[2]}
+
+echo "Installing Docker on node ${alice_node}..."
+pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${alice_node}
+
+echo "Installing Docker on node ${bob_node}..."
+pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${bob_node}
+
+
+# 10. Setup algorand sandbox
 sandbox_node=${args[0]}
 
 echo "Extending file system on node ${sandbox_node}..."
@@ -99,46 +117,11 @@ pos commands launch --infile testbed/run_sandbox.sh --name run-sandbox ${sandbox
 echo
 
 
-# 10. Setup for alice and bob
-alice_node=${args[1]}
-bob_node=${args[2]}
+# 11. Start nodes
+echo "Starting node ${alice_node}..."
+pos commands launch --infile testbed/start_node.sh --queued --name start-node ${alice_node}
 
-echo "Installing Docker on node ${alice_node}..."
-pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${alice_node}
-
-echo "Installing Docker on node ${bob_node}..."
-pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${bob_node}
-
-# 11. Wait for sandbox to be ready
-echo "Waiting for sandbox to be ready..."
-while ! check_command_output "pos commands launch -v ${sandbox_node} -- ./sandbox/sandbox test" "Test command forwarding"; do
-    sleep 5
-done
-echo "Sandbox is ready."
-
-# TODO
-# 1. option 
-# ./sandbox/sandbox test
-# root@dogecoin:~# ./sandbox/sandbox test
-
-# Test command forwarding...
-# ~$ docker exec -it algod uname -a
-# service "algod" is not running container #1
-
-# ./sandbox/sandbox status -v
-
-# algod - goal node status
-# service "algod" is not running container #1
-
-# 2. option:
-# ./sandbox/sandbox status -v
-
-
-# 12. Start nodes
-# echo "Starting node ${alice_node}..."
-# pos commands launch --infile testbed/start_node.sh --queued --name start-node ${alice_node}
-
-# echo "Starting node ${bob_node}..."
-# pos commands launch --infile testbed/start_node.sh --queued --name start-node ${bob_node}
+echo "Starting node ${bob_node}..."
+pos commands launch --infile testbed/start_node.sh --queued --name start-node ${bob_node}
 
 echo 
