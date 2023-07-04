@@ -31,6 +31,7 @@ for ((i=0; i<${#args[@]}; i++)); do
     echo "Freeing node ${args[i]}..."
     pos allocations free -k ${args[i]}
 done
+echo
 
 # 3. Allocate nodes
 echo "Allocating nodes ${args[@]}..."
@@ -96,11 +97,21 @@ pos commands launch --infile testbed/install_docker.sh --queued --name docker-se
 echo "Installing Docker on node ${bob_node}..."
 pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${bob_node}
 
-# 11. Start nodes
-echo "Starting node ${alice_node}..."
-pos commands launch --infile testbed/start_node.sh --queued --name start-node ${alice_node}
+# 13. Wait for sandbox to be ready
+echo "Waiting for sandbox to be ready..."
 
-echo "Starting node ${bob_node}..."
-pos commands launch --infile testbed/start_node.sh --queued --name start-node ${bob_node}
+# TODO
+# 1. option 
+# ./sandbox/sandbox test
+# 2. option:
+# ./sandbox/sandbox status -v
+
+
+# 12. Start nodes
+# echo "Starting node ${alice_node}..."
+# pos commands launch --infile testbed/start_node.sh --queued --name start-node ${alice_node}
+
+# echo "Starting node ${bob_node}..."
+# pos commands launch --infile testbed/start_node.sh --queued --name start-node ${bob_node}
 
 echo 
