@@ -185,7 +185,7 @@ echo
 # 12. Start alice and bob nodes
 echo "Starting node ${alice_node}..."
 pos commands launch --infile testbed/start_node.sh --queued --name start-node ${alice_node}
-pos commands launch --name run-container ${alice_node} docker run -d --name asc-my-node -p 28547:28547 \
+pos commands launch --name run-container ${alice_node} -- docker run -d --name asc-my-node -p 28547:28547 \
                                             -e ALGOD_ADDRESS="http://${sandbox_ip}:4001" \
                                             -e KMD_ADDRESS="http://${sandbox_ip}:4002" \
                                             -e INDEXER_ADDRESS="http://${sandbox_ip}:8980" \
@@ -193,7 +193,7 @@ pos commands launch --name run-container ${alice_node} docker run -d --name asc-
 
 echo "Starting node ${bob_node}..."
 pos commands launch --infile testbed/start_node.sh --queued --name start-node ${bob_node}
-pos commands launch --name run-container ${bob_node} docker run -d --name asc-my-node -p 28547:28547 \
+pos commands launch --name run-container ${bob_node} -- docker run -d --name asc-my-node -p 28547:28547 \
                                             -e ALGOD_ADDRESS="http://${sandbox_ip}:4001" \
                                             -e KMD_ADDRESS="http://${sandbox_ip}:4002" \
                                             -e INDEXER_ADDRESS="http://${sandbox_ip}:8980" \
