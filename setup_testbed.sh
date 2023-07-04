@@ -94,7 +94,6 @@ alice_ip=$(fqdn_to_ip "${args[1]}.blockchain.net.in.tum.de")
 bob_ip=$(fqdn_to_ip "${args[2]}.blockchain.net.in.tum.de")
 
 # Print the IP addresses
-echo
 echo "Sandbox IP: $sandbox_ip"
 echo "Alice IP: $alice_ip"
 echo "Bob IP: $bob_ip"
