@@ -61,6 +61,7 @@ echo "Waiting for nodes to be ready..."
 while ! check_nodes_booted; do
     sleep 5
 done
+echo
 
 
 for ((i=0; i<${#args[@]}; i++)); do
@@ -95,5 +96,11 @@ pos commands launch --infile testbed/install_docker.sh --queued --name docker-se
 echo "Installing Docker on node ${bob_node}..."
 pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${bob_node}
 
+# 11. Start nodes
+echo "Starting node ${alice_node}..."
+pos commands launch --infile testbed/start_node.sh --queued --name start-node ${alice_node}
+
+echo "Starting node ${bob_node}..."
+pos commands launch --infile testbed/start_node.sh --queued --name start-node ${bob_node}
 
 echo 
