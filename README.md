@@ -16,7 +16,7 @@
     ```
 5. Start the Algorand Sandbox:
     ```
-    ./sandbox up
+    ./sandbox up -v
     ```
 6. Build and start the Algorand State Channel Nodes:
     ```
