@@ -30,6 +30,7 @@
 * You can change the commands in ``docker_payment_channel_demo.sh`` to run different actions on the payment channel nodes.
 * You can read the logs by running ``docker-compose logs asc-alice`` or ``docker-compose logs asc-bob``.
 * You can run cli commands on the payment channel nodes directly by running ``docker exec -it asc-alice ascli -h`` or ``docker exec -it asc-bob ascli -h``.
+* You can inspect the blockchain by visiting https://app.dappflow.org/explorer/home in your browser and select the Algorand Sandbox network.
 
 
 ## Optional: Development of the Python files
