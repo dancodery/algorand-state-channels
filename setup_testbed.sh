@@ -204,5 +204,4 @@ pos commands launch --name run-container ${bob_node} -- docker run -d --name asc
 echo 
 
 # 13. Start measurements
-echo "Starting measurements..."
 source testbed/run_measurements.sh
