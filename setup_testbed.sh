@@ -161,10 +161,10 @@ alice_node=${node_names[1]}
 bob_node=${node_names[2]}
 
 echo "Installing Docker on node ${alice_node}..."
-pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${alice_node}
+pos commands launch --infile testbed/install_docker.sh --name docker-setup ${alice_node}
 
 echo "Installing Docker on node ${bob_node}..."
-pos commands launch --infile testbed/install_docker.sh --queued --name docker-setup ${bob_node}
+pos commands launch --infile testbed/install_docker.sh --name docker-setup ${bob_node}
 
 
 # 11. Setup algorand sandbox
@@ -184,7 +184,7 @@ echo
 
 # 12. Start alice and bob nodes
 echo "Starting node ${alice_node}..."
-pos commands launch --infile testbed/start_node.sh --queued --name start-node ${alice_node}
+pos commands launch --infile testbed/start_node.sh --name start-node ${alice_node}
 pos commands launch --name run-container ${alice_node} -- docker run -d --name asc-my-node -p 28547:28547 \
                                             -e ALGOD_ADDRESS="http://${sandbox_ip}:4001" \
                                             -e KMD_ADDRESS="http://${sandbox_ip}:4002" \
@@ -192,7 +192,7 @@ pos commands launch --name run-container ${alice_node} -- docker run -d --name a
                                                 asc-my-node
 
 echo "Starting node ${bob_node}..."
-pos commands launch --infile testbed/start_node.sh --queued --name start-node ${bob_node}
+pos commands launch --infile testbed/start_node.sh --name start-node ${bob_node}
 pos commands launch --name run-container ${bob_node} -- docker run -d --name asc-my-node -p 28547:28547 \
                                             -e ALGOD_ADDRESS="http://${sandbox_ip}:4001" \
                                             -e KMD_ADDRESS="http://${sandbox_ip}:4002" \
