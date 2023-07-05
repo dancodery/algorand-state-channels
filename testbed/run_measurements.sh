@@ -5,8 +5,8 @@
 function run-in-node () {
 	# docker exec -it asc-my-node ascli getinfo
 	# docker exec "$1" /bin/bash -c "${@:2}"
-	echo "pos commands launch -v $1 -- docker exec asc-my-node /bin/bash -c \"${@:2}\""
 	pos commands launch -v $1 -- docker exec asc-my-node /bin/bash -c "${@:2}"
+	# echo "pos commands launch -v $1 -- docker exec asc-my-node /bin/bash -c \"${@:2}\""
 }
 
 # wait-for-cmd: Run a command repeatedly until it completes/exits successfuly
@@ -106,8 +106,8 @@ alice_final_balance=$(run-in-node ${alice_node} "ascli getinfo | jq -r .algo_bal
 bob_final_balance=$(run-in-node ${bob_node} "ascli getinfo | jq -r .algo_balance") # save Bob's balance as raw string
 echo 
 echo "======================================================"
-echo "Alice's final balance: ${alice_final_balance}"
-echo "Bob's final balance: ${bob_final_balance}"
+echo "Alice's final balance: ${alice_final_balance} microAlgos"
+echo "Bob's final balance: ${bob_final_balance} microAlgos"
 
 total_transaction_fees=$(echo "${alice_starting_balance} - ${alice_final_balance} + ${bob_starting_balance} - ${bob_final_balance}" | bc)
-echo "Total transaction fees: ${total_transaction_fees}"
+echo "Total transaction fees: ${total_transaction_fees} microAlgos"

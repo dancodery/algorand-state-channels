@@ -95,6 +95,8 @@ echo "dispute_window=$dispute_window"
 echo "alice_to_bob_payment_rounds=$alice_to_bob_payment_rounds"
 echo "bob_to_alice_payment_rounds=$bob_to_alice_payment_rounds"
 echo "payment_amount=$payment_amount"
+echo "dispute_probability=$dispute_probability"
+echo "outfile=$outfile"
 echo
 
 # 2. Free hosts
