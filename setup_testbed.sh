@@ -166,6 +166,8 @@ pos commands launch --infile testbed/install_docker.sh --name docker-setup ${ali
 echo "Installing Docker on node ${bob_node}..."
 pos commands launch --infile testbed/install_docker.sh --name docker-setup ${bob_node}
 
+echo
+
 
 # 11. Setup algorand sandbox
 sandbox_node=${node_names[0]}
