@@ -34,24 +34,24 @@
 3. pip3 install -r requirements.txt
 
 
-## Optional: Run the python example usage file
-1. python3 example_usage.py
+### Run the python example usage file
+4. python3 example_usage.py
 
 
-## Rebuild specific container
+## For Development: Rebuild specific docker container
 1. docker-compose stop asc-alice
 2. docker-compose rm -f asc-alice
 3. docker-compose up -d --build asc-alice \
 ...
 4. docker-compose logs asc-alice
 
-## Open terminal for Alice
+## For Development: Open terminal for Alice
 docker exec -it asc-alice bash
 
-## Open terminal for Bob
+## For Development: Open terminal for Bob
 docker exec -it asc-bob bash
 
-## Commands Cheat Sheet
+## For Development: Docker-Compose Commands Cheat Sheet
 
 ### Docker-Compose Action Commands:
 1. **<span style="color: yellow;">docker-compose up [--remove-orphans] [-d] [--build] [container_name]
