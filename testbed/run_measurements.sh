@@ -111,3 +111,14 @@ echo "Bob's final balance: ${bob_final_balance} microAlgos"
 
 total_transaction_fees=$(echo "${alice_starting_balance} - ${alice_final_balance} + ${bob_starting_balance} - ${bob_final_balance}" | bc)
 echo "Total transaction fees: ${total_transaction_fees} microAlgos"
+
+
+## Save results
+# Create parent directories if they do not exist
+mkdir -p testbed/results
+
+# Create JSON content with total_transaction_fees field
+json_content="{\"total_transaction_fees\": ${total_transaction_fees}}"
+
+# Save JSON content to file in testbed/results/${outfile}
+echo "$json_content" > "testbed/results/${outfile}"
