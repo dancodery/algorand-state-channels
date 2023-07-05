@@ -84,7 +84,8 @@ done
 # Bob closes the channel cooperatively
 echo 
 echo "Bob closing the channel cooperatively..."
-run-in-node ${bob_node} "ascli cooperativeclosechannel --partner_address=${alice_address}"
+run-in-node ${alice_node} "ascli cooperativeclosechannel --partner_address=${bob_address}"
+# run-in-node ${bob_node} "ascli cooperativeclosechannel --partner_address=${alice_address}"
 
 # # Initiate closing the channel
 # echo
