@@ -10,15 +10,19 @@
     ```
     cd algorand-state-channels
     ```
-4. Start the Algorand Sandbox:
+4. Generate .env file:
+    ```
+    touch .env
+    ```
+5. Start the Algorand Sandbox:
     ```
     ./sandbox up
     ```
-5. Build and start the Algorand State Channel Nodes:
+6. Build and start the Algorand State Channel Nodes:
     ```
     docker-compose up -d --build asc-alice asc-bob
     ```
-6. Run the Payment Channel Demo Script:
+7. Run the Payment Channel Demo Script:
     ```
     ./docker_payment_channel_demo.sh --config_file=testbed/experiment1.conf
     ```
