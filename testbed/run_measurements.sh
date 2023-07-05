@@ -5,8 +5,8 @@
 function run-in-node () {
 	# docker exec -it asc-my-node ascli getinfo
 	# docker exec "$1" /bin/bash -c "${@:2}"
-	pos commands launch -v $1 -- docker exec asc-my-node /bin/bash -c "${@:2}"
 	echo "pos commands launch -v $1 -- docker exec asc-my-node /bin/bash -c \"${@:2}\""
+	pos commands launch -v $1 -- docker exec asc-my-node /bin/bash -c "${@:2}"
 }
 
 # wait-for-cmd: Run a command repeatedly until it completes/exits successfuly
