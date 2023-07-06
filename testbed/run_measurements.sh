@@ -76,31 +76,32 @@ for ((i=1; i<=${bob_to_alice_payment_rounds}; i++)); do
 	run-in-node ${bob_node} "ascli pay --partner_address=${alice_address} --amount=${payment_amount}"
 done
 
-# # Bob tries to cheat by closing the channel with an old state
-# echo
-# echo "Bob trying to cheat by closing the channel with an old state..."
-# run-in-node ${bob_node} "ascli trytocheat --partner_address=${alice_address}"
+# Bob tries to cheat with probability dispute_probability by closing the channel with an old state
+if [ $(awk -v p=$dispute_probability 'BEGIN {print (rand() < p)}') -eq 1 ]; then
+	echo
+    echo "Bob trying to cheat by closing the channel with an old state..."
+    run-in-node ${bob_node} "ascli trytocheat --partner_address=${alice_address}"
 
-# Bob closes the channel cooperatively
-echo 
-echo "Bob closing the channel cooperatively..."
-run-in-node ${alice_node} "ascli cooperativeclosechannel --partner_address=${bob_address}"
-# run-in-node ${bob_node} "ascli cooperativeclosechannel --partner_address=${alice_address}"
+	# sleep for dispute_window * block_time
+	echo
+	echo "Waiting for dispute window to expire: ${dispute_window} * 4 seconds..."
+	sleep $(echo "${dispute_window} * 4" | bc)
 
+	# Finalize closing the channel
+	echo
+	echo "Bob finalizing channel closing..."
+	run-in-node ${alice_node} "ascli finalizeclosechannel --partner_address=${bob_address}"
+else
+	# Bob closes the channel cooperatively
+	echo 
+	echo "Bob closing the channel cooperatively..."
+	run-in-node ${alice_node} "ascli cooperativeclosechannel --partner_address=${bob_address}"
+	# run-in-node ${bob_node} "ascli cooperativeclosechannel --partner_address=${alice_address}"
+fi
 # # Initiate closing the channel
 # echo
 # echo "Alice initiating channel closing..."
 # run-in-node ${alice_node} "ascli initiateclosechannel --partner_address=${bob_address}"
-
-# # sleep for dispute_window * block_time
-# echo
-# echo "Waiting for dispute window to expire: ${dispute_window} * 4 seconds..."
-# sleep $(echo "${dispute_window} * 4" | bc)
-
-# # Finalize closing the channel
-# echo
-# echo "Bob finalizing channel closing..."
-# run-in-node ${alice_node} "ascli finalizeclosechannel --partner_address=${bob_address}"
 
 # Get Alice and Bob's final balances
 alice_final_balance=$(run-in-node ${alice_node} "ascli getinfo | jq -r .algo_balance") # save Alice's balance as raw string
@@ -121,5 +122,9 @@ mkdir -p testbed/results
 # Create JSON content with total_transaction_fees field
 json_content="{\"total_transaction_fees\": ${total_transaction_fees}}"
 
+# Extract results_filename from CONFIG_FILE variable
+results_filename=$(basename "$CONFIG_FILE")
+results_filename="${results_filename%.*}"
+
 # Save JSON content to file in testbed/results/${outfile}
-echo "$json_content" > "testbed/results/${outfile}"
+echo "$json_content" > "testbed/results/${results_filename}.json"
