@@ -205,5 +205,11 @@ pos commands launch --name run-container ${bob_node} -- docker run -d --name asc
 
 echo 
 
-# 13. Start measurements
+# 13. Sync nodes
+echo "Syncing nodes..."
+pos commands launch -v ${alice_node} -- pos_sync
+pos commands launch -v ${bob_node} -- pos_sync
+echo
+
+# 14. Start measurements
 source testbed/run_measurements.sh
