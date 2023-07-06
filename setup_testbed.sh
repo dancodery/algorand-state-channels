@@ -207,11 +207,9 @@ echo
 
 # 13. Sync nodes
 echo "Syncing nodes..."
-# replace enp5s0
+pos commands launch --infile testbed/sync_node.sh --name sync-node ${alice_node}
+pos commands launch --infile testbed/sync_node.sh --name sync-node ${bob_node}
+echo
 
-# # pos commands launch -v ${alice_node} -- pos_sync
-# # pos commands launch -v ${bob_node} -- pos_sync
-# echo
-
-# # 14. Start measurements
-# source testbed/run_measurements.sh
+# 14. Start measurements
+source testbed/run_measurements.sh
