@@ -1,6 +1,6 @@
 #!/bin/bash
 
-interface="eno4"
+interface="eno5"
 
 git clone http://git.code.sf.net/p/linuxptp/code linuxptp
 cd linuxptp/
