@@ -220,9 +220,13 @@ func (r *rpcServer) Pay(ctx context.Context, in *asrpc.PayRequest) (*asrpc.PayRe
 		counterparty_balance = latestOffChainState.alice_balance
 	}
 
-	// 3. calculate new balances
+	// 3. calculate new balances and timestamp
 	new_my_balance := my_balance - in.Amount
 	new_counterparty_balance := counterparty_balance + in.Amount
+	timestamp_now := time.Now().UnixNano()
+
+	fmt.Printf("New timestamp: %v\n", timestamp_now)
+	fmt.Printf("Latest timestamp: %v\n", latestOffChainState.timestamp)
 
 	var new_alice_balance uint64
 	var new_bob_balance uint64
@@ -235,7 +239,6 @@ func (r *rpcServer) Pay(ctx context.Context, in *asrpc.PayRequest) (*asrpc.PayRe
 	}
 
 	// 4. sign new state
-	timestamp_now := time.Now().UnixNano()
 
 	var my_signature []byte
 	my_signature, err = payment.SignState(
