@@ -246,6 +246,15 @@ func (s *server) handleConnection(conn net.Conn) {
 		counterparty_balance_diff := int64(last_counterparty_balance) - int64(counterparty_new_balance)
 		my_balance_diff := int64(last_my_balance) - int64(my_new_balance)
 
+		fmt.Printf("counterparty_balance_diff: %d\n", counterparty_balance_diff)
+		fmt.Printf("my_balance_diff: %d\n", my_balance_diff)
+		fmt.Printf("counterparty_new_balance: %d\n", counterparty_new_balance)
+		fmt.Printf("last_counterparty_balance: %d\n", last_counterparty_balance)
+		fmt.Printf("my_new_balance: %d\n", my_new_balance)
+		fmt.Printf("last_my_balance: %d\n", last_my_balance)
+		fmt.Printf("new_timestamp: %d\n", new_timestamp)
+		fmt.Printf("last_timestamp: %d\n", last_timestamp)
+
 		if !(counterparty_balance_diff > 0 && // counterparty must pay to us
 			my_balance_diff == (-1)*counterparty_balance_diff && // what bob gains, alice loses
 			counterparty_new_balance >= onchain_state.penalty_reserve && // alice must have enough funds to pay the penalty
