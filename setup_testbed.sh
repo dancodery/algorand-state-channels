@@ -209,6 +209,7 @@ echo
 echo "Syncing nodes..."
 pos commands launch --infile testbed/setup_sync_node.sh --name sync-node ${alice_node}
 pos commands launch --infile testbed/setup_sync_node.sh --name sync-node ${bob_node}
+
 pos commands launch --infile testbed/sync_node.sh --name sync-node ${alice_node}
 pos commands launch --infile testbed/sync_node.sh --name sync-node ${bob_node}
 echo

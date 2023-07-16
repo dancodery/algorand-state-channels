@@ -90,13 +90,13 @@ if [ $(awk -v p=$dispute_probability 'BEGIN {print (rand() < p)}') -eq 1 ]; then
 	# Finalize closing the channel
 	echo
 	echo "Bob finalizing channel closing..."
-	run-in-node ${alice_node} "ascli finalizeclosechannel --partner_address=${bob_address}"
+	run-in-node ${bob_node} "ascli finalizeclosechannel --partner_address=${alice_address}"
 else
 	# Bob closes the channel cooperatively
 	echo 
 	echo "Bob closing the channel cooperatively..."
-	run-in-node ${alice_node} "ascli cooperativeclosechannel --partner_address=${bob_address}"
-	# run-in-node ${bob_node} "ascli cooperativeclosechannel --partner_address=${alice_address}"
+	# run-in-node ${alice_node} "ascli cooperativeclosechannel --partner_address=${bob_address}"
+	run-in-node ${bob_node} "ascli cooperativeclosechannel --partner_address=${alice_address}"
 fi
 # # Initiate closing the channel
 # echo

@@ -21,3 +21,4 @@ ptp_dst_mac             01:80:C2:00:00:0E
 network_transport       L2
 delay_mechanism         P2P
 ' | tee configs/gPTP.cfg
+ip link set dev "$interface" up
