@@ -155,10 +155,6 @@ byte "latest_alice_balance"
 app_global_get
 global MinTxnFee
 -
-global MinTxnFee
--
-global MinTxnFee
--
 itxn_field Amount
 byte "alice_address"
 app_global_get
@@ -170,10 +166,6 @@ global CurrentApplicationAddress
 itxn_field Sender
 byte "latest_bob_balance"
 app_global_get
-global MinTxnFee
--
-global MinTxnFee
--
 global MinTxnFee
 -
 itxn_field Amount
@@ -201,8 +193,6 @@ byte "latest_alice_balance"
 app_global_get
 global MinTxnFee
 -
-global MinTxnFee
--
 itxn_field Amount
 byte "alice_address"
 app_global_get
@@ -214,8 +204,6 @@ global CurrentApplicationAddress
 itxn_field Sender
 byte "latest_bob_balance"
 app_global_get
-global MinTxnFee
--
 global MinTxnFee
 -
 itxn_field Amount

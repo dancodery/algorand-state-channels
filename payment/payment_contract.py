@@ -236,7 +236,7 @@ def approval_program():
 				{
 					TxnField.type_enum: TxnType.Payment,
 					TxnField.sender: Global.current_application_address(),
-					TxnField.amount: App.globalGet(latest_alice_balance) - Global.min_txn_fee() - Global.min_txn_fee() - Global.min_txn_fee(),
+					TxnField.amount: App.globalGet(latest_alice_balance) - Global.min_txn_fee(),
 					TxnField.receiver: App.globalGet(alice_address),
 				}
 			),
@@ -247,7 +247,7 @@ def approval_program():
 				{
 					TxnField.type_enum: TxnType.Payment,
 					TxnField.sender: Global.current_application_address(),
-					TxnField.amount: App.globalGet(latest_bob_balance) - Global.min_txn_fee() - Global.min_txn_fee() - Global.min_txn_fee(),
+					TxnField.amount: App.globalGet(latest_bob_balance) - Global.min_txn_fee(),
 					TxnField.receiver: App.globalGet(bob_address),
 				}
 			),
@@ -304,7 +304,7 @@ def approval_program():
 				{
 					TxnField.type_enum: TxnType.Payment,
 					TxnField.sender: Global.current_application_address(),
-					TxnField.amount: App.globalGet(latest_alice_balance) - Global.min_txn_fee() - Global.min_txn_fee(),
+					TxnField.amount: App.globalGet(latest_alice_balance) - Global.min_txn_fee(),
 					TxnField.receiver: App.globalGet(alice_address),
 				}
 			),
@@ -315,7 +315,7 @@ def approval_program():
 				{
 					TxnField.type_enum: TxnType.Payment,
 					TxnField.sender: Global.current_application_address(),
-					TxnField.amount: App.globalGet(latest_bob_balance) - Global.min_txn_fee() - Global.min_txn_fee(),
+					TxnField.amount: App.globalGet(latest_bob_balance) - Global.min_txn_fee(),
 					TxnField.receiver: App.globalGet(bob_address),
 				}
 			),
