@@ -22,3 +22,4 @@ network_transport       L2
 delay_mechanism         P2P
 ' | tee configs/gPTP.cfg
 ip link set dev "$interface" up
+ptp4l -i "$interface" --step_threshold=1 -H -f configs/gPTP.cfg &
