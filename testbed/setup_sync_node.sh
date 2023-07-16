@@ -1,6 +1,6 @@
 #!/bin/bash
 
-interface="eno4"
+interface="eno5"
 
 git clone http://git.code.sf.net/p/linuxptp/code linuxptp
 cd linuxptp/
@@ -23,3 +23,8 @@ delay_mechanism         P2P
 ' | tee configs/gPTP.cfg
 ip link set dev "$interface" up
 ptp4l -i "$interface" --step_threshold=1 -H -f configs/gPTP.cfg &
+pmc -u -b 0 -t 1 "SET GRANDMASTER_SETTINGS_NP clockClass 248 \
+        clockAccuracy 0xfe offsetScaledLogVariance 0xffff \
+        currentUtcOffset 37 leap61 0 leap59 0 currentUtcOffsetValid 1 \
+        ptpTimescale 1 timeTraceable 1 frequencyTraceable 0 \
+        timeSource 0xa0"
