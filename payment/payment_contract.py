@@ -31,7 +31,7 @@ def approval_program():
 			InnerTxnBuilder.SetFields(
 				{
 					TxnField.type_enum: TxnType.Payment,
-					TxnField.amount: App.globalGet(latest_alice_balance) - Global.min_txn_fee() - Int(1000000),
+					TxnField.amount: App.globalGet(latest_alice_balance) - Global.min_txn_fee() - Int(100000),
 					TxnField.receiver: App.globalGet(alice_address),
 				}
 			),
