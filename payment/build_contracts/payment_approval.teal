@@ -184,33 +184,9 @@ main_l18:
 int 1
 return
 main_l19:
-itxn_begin
-int pay
-itxn_field TypeEnum
-global CurrentApplicationAddress
-itxn_field Sender
-byte "latest_alice_balance"
-app_global_get
-global MinTxnFee
--
-itxn_field Amount
 byte "alice_address"
 app_global_get
-itxn_field Receiver
-itxn_next
-int pay
-itxn_field TypeEnum
-global CurrentApplicationAddress
-itxn_field Sender
-byte "latest_bob_balance"
-app_global_get
-global MinTxnFee
--
-itxn_field Amount
-byte "bob_address"
-app_global_get
-itxn_field Receiver
-itxn_submit
+callsub closeAccountTo_0
 b main_l18
 main_l20:
 byte "CLOSE_CHANNEL"
@@ -550,3 +526,43 @@ btoi
 app_global_put
 int 1
 return
+
+// closeAccountTo
+closeAccountTo_0:
+store 0
+itxn_begin
+int pay
+itxn_field TypeEnum
+byte "latest_alice_balance"
+app_global_get
+global MinTxnFee
+-
+itxn_field Amount
+byte "alice_address"
+app_global_get
+itxn_field Receiver
+itxn_next
+int pay
+itxn_field TypeEnum
+byte "latest_bob_balance"
+app_global_get
+global MinTxnFee
+-
+itxn_field Amount
+byte "bob_address"
+app_global_get
+itxn_field Receiver
+itxn_submit
+global CurrentApplicationAddress
+balance
+int 0
+!=
+bz closeAccountTo_0_l2
+itxn_begin
+int pay
+itxn_field TypeEnum
+load 0
+itxn_field CloseRemainderTo
+itxn_submit
+closeAccountTo_0_l2:
+retsub
