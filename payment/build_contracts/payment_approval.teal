@@ -537,7 +537,7 @@ byte "latest_alice_balance"
 app_global_get
 global MinTxnFee
 -
-int 90000
+int 100000
 -
 itxn_field Amount
 byte "alice_address"
