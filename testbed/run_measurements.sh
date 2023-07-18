@@ -61,8 +61,8 @@ echo "Bob's starting balance: ${bob_starting_balance}"
 echo 
 echo "Alice opening a channel with Bob..."
 response=$(run-in-node ${alice_node} "ascli openchannel --partner_ip=${bob_node} --partner_address=${bob_address} --funding_amount=${funding_amount} --penalty_reserve=${penalty_reserve} --dispute_window=${dispute_window}")
-duration=$(echo "$response" | grep -oP 'timestamp_end:\{\K[^}]+')
-echo "Duration of openchannel command: $duration seconds"
+runtime_recording=$(echo "$response" | awk -F 'runtime_recording:{' '{print $2}' | sed 's/}.*//')
+echo "The runtime_recording is: $runtime_recording"
 
 # Make payments from Alice to Bob
 for ((i=1; i<=${alice_to_bob_payment_rounds}; i++)); do
