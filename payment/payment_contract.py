@@ -26,16 +26,7 @@ def approval_program():
 	@Subroutine(TealType.none)
 	def closeAccountTo(beneficiary: Expr) -> Expr:
 		return Seq(
-			# pay Alice
 			InnerTxnBuilder.Begin(),
-			InnerTxnBuilder.SetFields(
-				{
-					TxnField.type_enum: TxnType.Payment,
-					TxnField.amount: App.globalGet(latest_alice_balance) - Global.min_txn_fee() - Int(100000),
-					TxnField.receiver: App.globalGet(alice_address),
-				}
-			),
-			InnerTxnBuilder.Next(),
 
 			# pay Bob
 			InnerTxnBuilder.SetFields(
@@ -45,8 +36,18 @@ def approval_program():
 					TxnField.receiver: App.globalGet(bob_address),
 				}
 			),
-			InnerTxnBuilder.Submit(),
+			InnerTxnBuilder.Next(),
 
+			# pay Alice
+			InnerTxnBuilder.SetFields(
+				{
+					TxnField.type_enum: TxnType.Payment,
+					TxnField.amount: App.globalGet(latest_alice_balance) - Global.min_txn_fee(),
+					TxnField.receiver: App.globalGet(alice_address),
+					TxnField.close_remainder_to: beneficiary,
+				}
+			),
+			InnerTxnBuilder.Submit(),
 
 			# # pay leftover to
 			# If(Balance(Global.current_application_address()) != Int(0)).Then(
