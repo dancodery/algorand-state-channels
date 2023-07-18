@@ -48,20 +48,6 @@ def approval_program():
 				}
 			),
 			InnerTxnBuilder.Submit(),
-
-			# # pay leftover to
-			# If(Balance(Global.current_application_address()) != Int(0)).Then(
-			# 	Seq(
-			# 		InnerTxnBuilder.Begin(),
-			# 		InnerTxnBuilder.SetFields(
-			# 			{
-			# 				TxnField.type_enum: TxnType.Payment,
-			# 				TxnField.close_remainder_to: beneficiary,
-			# 			}
-			# 		),
-			# 		InnerTxnBuilder.Submit(),
-			# 	)
-			# )
 		)
 
 	# rebalances the channel by moving funds from one party to the other
@@ -231,28 +217,7 @@ def approval_program():
 			App.globalPut(latest_bob_balance, Btoi(bob_balance)),						# store latest balances of bob
 
 			# immediately close channel
-			# send funds to alice
-			InnerTxnBuilder.Begin(),
-			InnerTxnBuilder.SetFields(
-				{
-					TxnField.type_enum: TxnType.Payment,
-					TxnField.sender: Global.current_application_address(),
-					TxnField.amount: App.globalGet(latest_alice_balance) - Global.min_txn_fee(),
-					TxnField.receiver: App.globalGet(alice_address),
-				}
-			),
-			InnerTxnBuilder.Next(),
-
-			# send funds to bob
-			InnerTxnBuilder.SetFields(
-				{
-					TxnField.type_enum: TxnType.Payment,
-					TxnField.sender: Global.current_application_address(),
-					TxnField.amount: App.globalGet(latest_bob_balance) - Global.min_txn_fee(),
-					TxnField.receiver: App.globalGet(bob_address),
-				}
-			),
-			InnerTxnBuilder.Submit(),
+			closeAccountTo(App.globalGet(alice_address)),
 		),
 		Approve(),
 	)
@@ -301,28 +266,6 @@ def approval_program():
 			# timeout has passed
 			# send funds to alice
 			closeAccountTo(App.globalGet(alice_address)),
-
-			# InnerTxnBuilder.Begin(),
-			# InnerTxnBuilder.SetFields(
-			# 	{
-			# 		TxnField.type_enum: TxnType.Payment,
-			# 		TxnField.sender: Global.current_application_address(),
-			# 		TxnField.amount: App.globalGet(latest_alice_balance) - Global.min_txn_fee(),
-			# 		TxnField.receiver: App.globalGet(alice_address),
-			# 	}
-			# ),
-			# InnerTxnBuilder.Next(),
-
-			# # send funds to bob
-			# InnerTxnBuilder.SetFields(
-			# 	{
-			# 		TxnField.type_enum: TxnType.Payment,
-			# 		TxnField.sender: Global.current_application_address(),
-			# 		TxnField.amount: App.globalGet(latest_bob_balance) - Global.min_txn_fee(),
-			# 		TxnField.receiver: App.globalGet(bob_address),
-			# 	}
-			# ),
-			# InnerTxnBuilder.Submit(),
 		),
 		Approve(),
 	)

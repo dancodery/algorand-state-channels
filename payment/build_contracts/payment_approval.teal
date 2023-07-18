@@ -146,33 +146,9 @@ byte "latest_bob_balance"
 txna ApplicationArgs 3
 btoi
 app_global_put
-itxn_begin
-int pay
-itxn_field TypeEnum
-global CurrentApplicationAddress
-itxn_field Sender
-byte "latest_alice_balance"
-app_global_get
-global MinTxnFee
--
-itxn_field Amount
 byte "alice_address"
 app_global_get
-itxn_field Receiver
-itxn_next
-int pay
-itxn_field TypeEnum
-global CurrentApplicationAddress
-itxn_field Sender
-byte "latest_bob_balance"
-app_global_get
-global MinTxnFee
--
-itxn_field Amount
-byte "bob_address"
-app_global_get
-itxn_field Receiver
-itxn_submit
+callsub closeAccountTo_0
 b main_l15
 main_l17:
 global Round

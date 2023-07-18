@@ -92,26 +92,26 @@ if [ $(awk -v p=$dispute_probability 'BEGIN {print (rand() < p)}') -eq 1 ]; then
 	echo "Bob finalizing channel closing..."
 	run-in-node ${bob_node} "ascli finalizeclosechannel --partner_address=${alice_address}"
 else
-	# # Bob closes the channel cooperatively
-	# echo 
-	# echo "Bob closing the channel cooperatively..."
-	# # run-in-node ${alice_node} "ascli cooperativeclosechannel --partner_address=${bob_address}"
-	# run-in-node ${bob_node} "ascli cooperativeclosechannel --partner_address=${alice_address}"
+	# Bob closes the channel cooperatively
+	echo 
+	echo "Bob closing the channel cooperatively..."
+	# run-in-node ${alice_node} "ascli cooperativeclosechannel --partner_address=${bob_address}"
+	run-in-node ${bob_node} "ascli cooperativeclosechannel --partner_address=${alice_address}"
 
-	# Initiate closing the channel
-	echo
-	echo "Alice initiating channel closing..."
-	run-in-node ${alice_node} "ascli initiateclosechannel --partner_address=${bob_address}"
+	# # Initiate closing the channel
+	# echo
+	# echo "Alice initiating channel closing..."
+	# run-in-node ${alice_node} "ascli initiateclosechannel --partner_address=${bob_address}"
 
-	# sleep for dispute_window * block_time
-	echo
-	echo "Waiting for dispute window to expire: ${dispute_window} * 4 seconds..."
-	sleep $(echo "${dispute_window} * 4" | bc)
+	# # sleep for dispute_window * block_time
+	# echo
+	# echo "Waiting for dispute window to expire: ${dispute_window} * 4 seconds..."
+	# sleep $(echo "${dispute_window} * 4" | bc)
 
-	# Finalize closing the channel
-	echo
-	echo "Alice finalizing channel closing..."
-	run-in-node ${alice_node} "ascli finalizeclosechannel --partner_address=${bob_address}"
+	# # Finalize closing the channel
+	# echo
+	# echo "Alice finalizing channel closing..."
+	# run-in-node ${alice_node} "ascli finalizeclosechannel --partner_address=${bob_address}"
 fi
 
 
