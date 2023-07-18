@@ -207,11 +207,12 @@ echo
 
 # 13. Sync nodes
 echo "Syncing nodes..."
-pos commands launch --infile testbed/setup_sync_node.sh --name sync-node ${alice_node}
-pos commands launch --infile testbed/setup_sync_node.sh --name sync-node ${bob_node}
+interface="eno5"
+pos commands launch --infile testbed/setup_sync_node.sh --name setup-sync-node ${alice_node}
+pos commands launch --infile testbed/setup_sync_node.sh --name setup-sync-node ${bob_node}
 
-pos commands launch --infile testbed/sync_node.sh --name sync-node ${alice_node}
-pos commands launch --infile testbed/sync_node.sh --name sync-node ${bob_node}
+pos commands launch --name sync-node ${alice_node} -- phc2sys -s "$interface" -c CLOCK_REALTIME --step_threshold=1 --transportSpecific=1 -w &
+pos commands launch --name sync-node ${bob_node} -- phc2sys -s "$interface" -c CLOCK_REALTIME --step_threshold=1 --transportSpecific=1 -w &
 echo
 
 # 14. Start measurements
