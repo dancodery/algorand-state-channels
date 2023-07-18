@@ -48,19 +48,19 @@ def approval_program():
 			InnerTxnBuilder.Submit(),
 
 
-			# pay leftover to
-			If(Balance(Global.current_application_address()) != Int(0)).Then(
-				Seq(
-					InnerTxnBuilder.Begin(),
-					InnerTxnBuilder.SetFields(
-						{
-							TxnField.type_enum: TxnType.Payment,
-							TxnField.close_remainder_to: beneficiary,
-						}
-					),
-					InnerTxnBuilder.Submit(),
-				)
-			)
+			# # pay leftover to
+			# If(Balance(Global.current_application_address()) != Int(0)).Then(
+			# 	Seq(
+			# 		InnerTxnBuilder.Begin(),
+			# 		InnerTxnBuilder.SetFields(
+			# 			{
+			# 				TxnField.type_enum: TxnType.Payment,
+			# 				TxnField.close_remainder_to: beneficiary,
+			# 			}
+			# 		),
+			# 		InnerTxnBuilder.Submit(),
+			# 	)
+			# )
 		)
 
 	# rebalances the channel by moving funds from one party to the other

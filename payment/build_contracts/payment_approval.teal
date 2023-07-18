@@ -555,16 +555,4 @@ byte "bob_address"
 app_global_get
 itxn_field Receiver
 itxn_submit
-global CurrentApplicationAddress
-balance
-int 0
-!=
-bz closeAccountTo_0_l2
-itxn_begin
-int pay
-itxn_field TypeEnum
-load 0
-itxn_field CloseRemainderTo
-itxn_submit
-closeAccountTo_0_l2:
 retsub
