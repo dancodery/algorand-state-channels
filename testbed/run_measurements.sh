@@ -79,7 +79,7 @@ for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
 	channel_open_response=$(run-in-node ${alice_node} "ascli openchannel --partner_ip=${bob_node} --partner_address=${bob_address} --funding_amount=${funding_amount} --penalty_reserve=${penalty_reserve} --dispute_window=${dispute_window}")
 	echo $channel_open_response
 	channel_open_difference=$(calculate_runtime_difference "$channel_open_response")
-	execution_time+=$channel_open_difference
+	execution_time=$(echo "$execution_time + $channel_open_difference" | bc)
 
 	# Make payments from Alice to Bob
 	for ((i=1; i<=${how_many_payments}; i++)); do
@@ -88,7 +88,7 @@ for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
 		pay_response=$(run-in-node ${alice_node} "ascli pay --partner_address=${bob_address} --amount=${payment_amount}")
 		echo $pay_response
 		pay_difference=$(calculate_runtime_difference "$pay_response")
-		execution_time+=$pay_difference
+		execution_time=$(echo "$execution_time + $pay_difference" | bc)
 	done
 
 	# # Make payments from Bob to Alice
@@ -121,7 +121,7 @@ for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
 		cooperative_close_response=$(run-in-node ${bob_node} "ascli cooperativeclosechannel --partner_address=${alice_address}")
 		echo $cooperative_close_response
 		cooperative_close_difference=$(calculate_runtime_difference "$cooperative_close_response")
-		execution_time+=$cooperative_close_difference
+		execution_time=$(echo "$execution_time + $cooperative_close_difference" | bc)
 
 		# # Initiate closing the channel
 		# echo
@@ -147,13 +147,12 @@ for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
 	echo "Alice's final balance: ${alice_final_balance} microAlgos"
 	echo "Bob's final balance: ${bob_final_balance} microAlgos"
 
-	total_transaction_fees=$(echo "${alice_starting_balance} - ${alice_final_balance} + ${bob_starting_balance} - ${bob_final_balance}" | bc)
-	echo "Total transaction fees: ${total_transaction_fees} microAlgos"
-
 	# Create JSON content with total_transaction_fees field
 	json_content="{\"total_transaction_fees\": ${total_transaction_fees}}"
 
 	echo
+	total_transaction_fees=$(echo "${alice_starting_balance} - ${alice_final_balance} + ${bob_starting_balance} - ${bob_final_balance}" | bc)
+	echo "Total transaction fees: ${total_transaction_fees} microAlgos"
 	echo "Total execution time: $execution_time seconds"
 	echo
 done
