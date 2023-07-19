@@ -33,8 +33,8 @@ echo "Waiting for nodes to be ready..."
 wait-for-node ${alice_node} "ascli getinfo"
 wait-for-node ${bob_node} "ascli getinfo"
 
-for ((payment_amount=1; payment_amount<=20; payment_amount++)); do
-	echo "Payment amount: ${payment_amount}"
+for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
+	echo "Amount of payments: ${how_many_payments}"
 	echo "======================================================"
 	echo 
 
@@ -76,7 +76,7 @@ for ((payment_amount=1; payment_amount<=20; payment_amount++)); do
 	execution_time+=$channel_open_difference
 
 	# Make payments from Alice to Bob
-	for ((i=1; i<=${payment_amount}; i++)); do
+	for ((i=1; i<=${how_many_payments}; i++)); do
 		echo
 		echo "Alice paying Bob ${payment_amount} microAlgos (round ${i})..."
 		pay_response=$(run-in-node ${alice_node} "ascli pay --partner_address=${bob_address} --amount=${payment_amount}")
