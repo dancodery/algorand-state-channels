@@ -63,7 +63,15 @@ echo "Alice opening a channel with Bob..."
 channel_open_response=$(run-in-node ${alice_node} "ascli openchannel --partner_ip=${bob_node} --partner_address=${bob_address} --funding_amount=${funding_amount} --penalty_reserve=${penalty_reserve} --dispute_window=${dispute_window}")
 echo $channel_open_response
 runtime_recording=$(echo "$channel_open_response" | awk -F 'runtime_recording:{' '{print $2}' | sed 's/}[^}]*$//')
+
+# Extract timestamp_start and timestamp_end from runtime_recording
+timestamp_start=$(echo "$runtime_recording" | awk -F '[{: ]+' '/timestamp_start/{print $2}')
+timestamp_end=$(echo "$runtime_recording" | awk -F '[{: ]+' '/timestamp_end/{print $2}')
+
 echo "The runtime_recording is: $runtime_recording"
+# Print the extracted values
+echo "timestamp_start=$timestamp_start"
+echo "timestamp_end=$timestamp_end"
 
 # Make payments from Alice to Bob
 for ((i=1; i<=${alice_to_bob_payment_rounds}; i++)); do
