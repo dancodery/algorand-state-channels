@@ -64,9 +64,9 @@ echo
 echo "Alice opening a channel with Bob..."
 channel_open_response=$(run-in-node ${alice_node} "ascli openchannel --partner_ip=${bob_node} --partner_address=${bob_address} --funding_amount=${funding_amount} --penalty_reserve=${penalty_reserve} --dispute_window=${dispute_window}")
 echo $channel_open_response
-channel_open_runtime_recording=$(echo "$channel_open_response" | awk -F 'channel_open_runtime_recording:{' '{print $2}' | sed 's/}[^}]*$//')
-channel_open_timestamp_start=$(echo "$channel_open_runtime_recording" | awk -F '[: }]+' '/channel_open_timestamp_start/{print $3 "." $5}')
-channel_open_timestamp_end=$(echo "$channel_open_runtime_recording" | awk -F '[: }]+' '/channel_open_timestamp_end/{print $8 "." $10}')
+channel_open_runtime_recording=$(echo "$channel_open_response" | awk -F 'runtime_recording:{' '{print $2}' | sed 's/}[^}]*$//')
+channel_open_timestamp_start=$(echo "$channel_open_runtime_recording" | awk -F '[: }]+' '/timestamp_start/{print $3 "." $5}')
+channel_open_timestamp_end=$(echo "$channel_open_runtime_recording" | awk -F '[: }]+' '/timestamp_end/{print $8 "." $10}')
 channel_open_difference=$(awk -v start="$channel_open_timestamp_start" -v end="$channel_open_timestamp_end" 'BEGIN { diff = end - start; print diff }')
 execution_time+=$channel_open_difference
 
