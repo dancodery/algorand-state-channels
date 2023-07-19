@@ -153,7 +153,7 @@ for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
 	echo
 	total_transaction_fees=$(echo "${alice_starting_balance} - ${alice_final_balance} + ${bob_starting_balance} - ${bob_final_balance}" | bc)
 	echo "Total transaction fees: ${total_transaction_fees} microAlgos"
-	echo "Total execution time: $execution_time seconds"
+	printf "Total execution time: %.9f seconds\n" $execution_time
 	echo
 done
 
