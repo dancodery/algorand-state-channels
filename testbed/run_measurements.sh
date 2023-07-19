@@ -30,7 +30,7 @@ function calculate_runtime_difference() {
 	local timestamp_end=$(echo "$runtime_recording" | awk -F '[: }]+' '/timestamp_end/{print $8 "." $10}')
 	local difference=$(awk -v start="$timestamp_start" -v end="$timestamp_end" 'BEGIN { diff = end - start; print diff }')
 
-	echo "$difference"
+	echo $difference
 }
 
 ### Start the measurements ###
@@ -52,7 +52,6 @@ for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
 	echo "Resetting Alice and Bob's nodes..."
 	run-in-node ${alice_node} "ascli reset"
 	run-in-node ${bob_node} "ascli reset"
-	echo
 
 	# Print Alice and Bob's addresses
 
@@ -120,8 +119,9 @@ for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
 		echo 
 		echo "Bob closing the channel cooperatively..."
 		cooperative_close_response=$(run-in-node ${bob_node} "ascli cooperativeclosechannel --partner_address=${alice_address}")
-		# TODO
 		echo $cooperative_close_response
+		cooperative_close_difference=$(calculate_runtime_difference "$cooperative_close_response")
+		execution_time+=$cooperative_close_difference
 
 		# # Initiate closing the channel
 		# echo
@@ -143,7 +143,7 @@ for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
 	alice_final_balance=$(run-in-node ${alice_node} "ascli getinfo | jq -r .algo_balance") # save Alice's balance as raw string
 	bob_final_balance=$(run-in-node ${bob_node} "ascli getinfo | jq -r .algo_balance") # save Bob's balance as raw string
 	echo 
-	echo "======================================================"
+	echo "============="
 	echo "Alice's final balance: ${alice_final_balance} microAlgos"
 	echo "Bob's final balance: ${bob_final_balance} microAlgos"
 
@@ -153,7 +153,9 @@ for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
 	# Create JSON content with total_transaction_fees field
 	json_content="{\"total_transaction_fees\": ${total_transaction_fees}}"
 
+	echo
 	echo "Total execution time: $execution_time seconds"
+	echo
 done
 
 
