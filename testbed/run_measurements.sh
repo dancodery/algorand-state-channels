@@ -23,6 +23,16 @@ function wait-for-node () {
 	wait-for-cmd run-in-node $1 "${@:2}"
 }
 
+function calculate_runtime_difference() {
+	local response="$1"
+	local runtime_recording=$(echo "$response" | awk -F 'runtime_recording:{' '{print $2}' | sed 's/}[^}]*$//')
+	local timestamp_start=$(echo "$runtime_recording" | awk -F '[: }]+' '/timestamp_start/{print $3 "." $5}')
+	local timestamp_end=$(echo "$runtime_recording" | awk -F '[: }]+' '/timestamp_end/{print $8 "." $10}')
+	local difference=$(awk -v start="$timestamp_start" -v end="$timestamp_end" 'BEGIN { diff = end - start; print diff }')
+
+	echo "$difference"
+}
+
 ### Start the measurements ###
 echo "Starting the measurements..."
 echo "======================================================"
@@ -35,7 +45,7 @@ wait-for-node ${bob_node} "ascli getinfo"
 
 for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
 	echo "Amount of payments: ${how_many_payments}"
-	echo "======================================================"
+	echo "========================="
 	echo 
 
 	# Resetting Alice and Bob's nodes
@@ -69,10 +79,7 @@ for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
 	echo "Alice opening a channel with Bob..."
 	channel_open_response=$(run-in-node ${alice_node} "ascli openchannel --partner_ip=${bob_node} --partner_address=${bob_address} --funding_amount=${funding_amount} --penalty_reserve=${penalty_reserve} --dispute_window=${dispute_window}")
 	echo $channel_open_response
-	channel_open_runtime_recording=$(echo "$channel_open_response" | awk -F 'runtime_recording:{' '{print $2}' | sed 's/}[^}]*$//')
-	channel_open_timestamp_start=$(echo "$channel_open_runtime_recording" | awk -F '[: }]+' '/timestamp_start/{print $3 "." $5}')
-	channel_open_timestamp_end=$(echo "$channel_open_runtime_recording" | awk -F '[: }]+' '/timestamp_end/{print $8 "." $10}')
-	channel_open_difference=$(awk -v start="$channel_open_timestamp_start" -v end="$channel_open_timestamp_end" 'BEGIN { diff = end - start; print diff }')
+	channel_open_difference=$(calculate_runtime_difference "$channel_open_response")
 	execution_time+=$channel_open_difference
 
 	# Make payments from Alice to Bob
@@ -81,6 +88,8 @@ for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
 		echo "Alice paying Bob ${payment_amount} microAlgos (round ${i})..."
 		pay_response=$(run-in-node ${alice_node} "ascli pay --partner_address=${bob_address} --amount=${payment_amount}")
 		echo $pay_response
+		pay_difference=$(calculate_runtime_difference "$pay_response")
+		execution_time+=$pay_difference
 	done
 
 	# # Make payments from Bob to Alice
@@ -110,8 +119,8 @@ for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
 		# Bob closes the channel cooperatively
 		echo 
 		echo "Bob closing the channel cooperatively..."
-		# run-in-node ${alice_node} "ascli cooperativeclosechannel --partner_address=${bob_address}"
 		cooperative_close_response=$(run-in-node ${bob_node} "ascli cooperativeclosechannel --partner_address=${alice_address}")
+		# TODO
 		echo $cooperative_close_response
 
 		# # Initiate closing the channel
