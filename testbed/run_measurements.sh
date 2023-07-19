@@ -65,8 +65,8 @@ echo $channel_open_response
 runtime_recording=$(echo "$channel_open_response" | awk -F 'runtime_recording:{' '{print $2}' | sed 's/}[^}]*$//')
 
 # Extract timestamp_start and timestamp_end from runtime_recording
-timestamp_start=$(echo "$runtime_recording" | awk -F '[{: ]+' '/timestamp_start/{print $2}')
-timestamp_end=$(echo "$runtime_recording" | awk -F '[{: ]+' '/timestamp_end/{print $2}')
+timestamp_start=$(echo "$runtime_recording" | awk -F '[,: ]+' '/timestamp_start/{print $3 "." $4}')
+timestamp_end=$(echo "$runtime_recording" | awk -F '[,: ]+' '/timestamp_end/{print $3 "." $4}')
 
 echo "The runtime_recording is: $runtime_recording"
 # Print the extracted values
