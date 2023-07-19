@@ -70,29 +70,21 @@ channel_open_timestamp_end=$(echo "$channel_open_runtime_recording" | awk -F '[:
 channel_open_difference=$(awk -v start="$channel_open_timestamp_start" -v end="$channel_open_timestamp_end" 'BEGIN { diff = end - start; print diff }')
 execution_time+=$channel_open_difference
 
-echo "Total execution time: $execution_time seconds"
-
-# Print the channel_open_difference
-echo "channel_open_Difference: $channel_open_difference seconds"
-
-echo "The channel_open_runtime_recording is: $channel_open_runtime_recording"
-# Print the extracted values
-echo "channel_open_timestamp_start=$channel_open_timestamp_start"
-echo "channel_open_timestamp_end=$channel_open_timestamp_end"
-
 # Make payments from Alice to Bob
-for ((i=1; i<=${alice_to_bob_payment_rounds}; i++)); do
+
+for ((i=1; i<=${20}; i++)); do
 	echo
 	echo "Alice paying Bob ${payment_amount} microAlgos (round ${i})..."
-	run-in-node ${alice_node} "ascli pay --partner_address=${bob_address} --amount=${payment_amount}"
+	pay_response=$(run-in-node ${alice_node} "ascli pay --partner_address=${bob_address} --amount=${payment_amount}")
+	echo $pay_response
 done
 
-# Make payments from Bob to Alice
-for ((i=1; i<=${bob_to_alice_payment_rounds}; i++)); do
-	echo
-	echo "Bob paying Alice ${payment_amount} microAlgos (round ${i})..."
-	run-in-node ${bob_node} "ascli pay --partner_address=${alice_address} --amount=${payment_amount}"
-done
+# # Make payments from Bob to Alice
+# for ((i=1; i<=${bob_to_alice_payment_rounds}; i++)); do
+# 	echo
+# 	echo "Bob paying Alice ${payment_amount} microAlgos (round ${i})..."
+# 	run-in-node ${bob_node} "ascli pay --partner_address=${alice_address} --amount=${payment_amount}"
+# done
 
 # Bob tries to cheat with probability dispute_probability by closing the channel with an old state
 if [ $(awk -v p=$dispute_probability 'BEGIN {print (rand() < p)}') -eq 1 ]; then
@@ -114,7 +106,8 @@ else
 	echo 
 	echo "Bob closing the channel cooperatively..."
 	# run-in-node ${alice_node} "ascli cooperativeclosechannel --partner_address=${bob_address}"
-	run-in-node ${bob_node} "ascli cooperativeclosechannel --partner_address=${alice_address}"
+	cooperative_close_response=$(run-in-node ${bob_node} "ascli cooperativeclosechannel --partner_address=${alice_address}")
+	echo $cooperative_close_response
 
 	# # Initiate closing the channel
 	# echo
@@ -158,3 +151,5 @@ results_filename="${results_filename%.*}"
 
 # Save JSON content to file in testbed/results/${outfile}
 echo "$json_content" > "testbed/results/${results_filename}.json"
+
+echo "Total execution time: $execution_time seconds"
