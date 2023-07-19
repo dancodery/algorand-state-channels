@@ -66,11 +66,11 @@ runtime_recording=$(echo "$channel_open_response" | awk -F 'runtime_recording:{'
 
 # Extract timestamp_start and timestamp_end from runtime_recording
 timestamp_start=$(echo "$runtime_recording" | awk -F '[: }]+' '/timestamp_start/{print $3 "." $5}')
-# timestamp_start=$(echo "$runtime_recording" | awk -F '[: }]+' '/timestamp_start/{for (i=1; i<=NF; i++) print $i}')
-
 timestamp_end=$(echo "$runtime_recording" | awk -F '[: }]+' '/timestamp_end/{print $8 "." $10}')
-# timestamp_end=$(echo "$runtime_recording" | awk -F '[: }]+' '/timestamp_end/{for (i=1; i<=NF; i++) print $i}')
+difference=$(awk -v start="$timestamp_start" -v end="$timestamp_end" 'BEGIN { diff = end - start; print diff }')
 
+# Print the difference
+echo "Difference: $difference seconds"
 
 echo "The runtime_recording is: $runtime_recording"
 # Print the extracted values
