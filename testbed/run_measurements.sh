@@ -45,9 +45,9 @@ wait-for-node ${bob_node} "ascli getinfo"
 
 payments_record="{"
 
-for ((how_many_payments=1; how_many_payments<=5; how_many_payments++)); do
+for ((how_many_payments=1; how_many_payments<=40; how_many_payments++)); do
 	if [ $how_many_payments -ge 21 ]; then
-		how_many_payments=$((how_many_payments * 1000))
+		how_many_payments=$(((how_many_payments-20) * 10_000))
 	fi
 
 	echo "Amount of payments: ${how_many_payments}"
