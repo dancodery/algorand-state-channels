@@ -1,0 +1,15 @@
+{
+"funding_amount": 2000000000,
+"penalty_reserve": 100,
+"dispute_window": 3,
+
+"dispute_probability": 0,
+
+"payments": {  "1": {"transaction_fees": 12000, "execution_time": 13.55329478},  
+"2": {"transaction_fees": 2001, "execution_time": 14.25730828},  
+"3": {"transaction_fees": 12000, "execution_time": 15.00479704},  
+"4": {"transaction_fees": -7999, "execution_time": 12.59998999}, 
+ "5": {"transaction_fees": 12000, "execution_time": 13.22643692}
+
+}
+}
