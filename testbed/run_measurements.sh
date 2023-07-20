@@ -43,7 +43,8 @@ echo "Waiting for nodes to be ready..."
 wait-for-node ${alice_node} "ascli getinfo"
 wait-for-node ${bob_node} "ascli getinfo"
 
-for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
+# for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
+for ((how_many_payments=1; how_many_payments<=2; how_many_payments++)); do
 	echo "Amount of payments: ${how_many_payments}"
 	echo "========================="
 	echo 
@@ -168,6 +169,18 @@ mkdir -p testbed/results
 # Extract results_filename from CONFIG_FILE variable
 results_filename=$(basename "$CONFIG_FILE")
 results_filename="${results_filename%.*}"
+
+json_content="{
+	\"funding_amount\": ${funding_amount},
+	\"penalty_reserve\": ${penalty_reserve},
+	\"dispute_window\": ${dispute_window},
+
+	\"dispute_probability\": ${dispute_probability},
+
+	\"payments\": 0,
+	}"
+
+# \"total_transaction_fees\": ${total_transaction_fees}
 
 # Save JSON content to file in testbed/results/${outfile}
 echo "$json_content" > "testbed/results/${results_filename}.json"
