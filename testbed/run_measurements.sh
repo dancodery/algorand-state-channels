@@ -164,7 +164,7 @@ for ((how_many_payments=1; how_many_payments<=3; how_many_payments++)); do
 	printf "Total execution time: %.9f seconds\n" $execution_time
 	echo
 
-	payments_record+="\"\n${how_many_payments}\": {\"transaction_fees\": ${total_transaction_fees}, \"execution_time\": ${execution_time}},"
+	payments_record+="\" ${how_many_payments}\": {\"transaction_fees\": ${total_transaction_fees}, \"execution_time\": ${execution_time}},"
 
 	sleep 5
 done
