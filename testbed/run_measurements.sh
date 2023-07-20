@@ -43,8 +43,14 @@ echo "Waiting for nodes to be ready..."
 wait-for-node ${alice_node} "ascli getinfo"
 wait-for-node ${bob_node} "ascli getinfo"
 
+payments_record="{"
+
 # for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
 for ((how_many_payments=1; how_many_payments<=2; how_many_payments++)); do
+	if [ $how_many_payments -ge 10 ]; then
+		how_many_payments=$((how_many_payments * 1000))
+	fi
+
 	echo "Amount of payments: ${how_many_payments}"
 	echo "========================="
 	echo 
@@ -55,7 +61,6 @@ for ((how_many_payments=1; how_many_payments<=2; how_many_payments++)); do
 	run-in-node ${bob_node} "ascli reset"
 
 	# Print Alice and Bob's addresses
-
 	# Alice: get algo address
 	echo "Getting algo address from Alice..."
 	alice_address=$(run-in-node ${alice_node} "ascli getinfo | jq -r .algo_address") # save Alice's address as raw string
@@ -158,9 +163,15 @@ for ((how_many_payments=1; how_many_payments<=2; how_many_payments++)); do
 	LC_NUMERIC=C
 	printf "Total execution time: %.9f seconds\n" $execution_time
 	echo
+
+	payments_record+="\"${how_many_payments}\": {\"transaction_fees\": ${total_transaction_fees}, \"execution_time\": ${execution_time}},"
+
 	sleep 5
 done
 
+# Remove trailing comma and close payments object
+payments_record=${payments_record%?}	
+payments_record+="}"
 
 ## Save results
 # Create parent directories if they do not exist
@@ -171,14 +182,14 @@ results_filename=$(basename "$CONFIG_FILE")
 results_filename="${results_filename%.*}"
 
 json_content="{
-	\"funding_amount\": ${funding_amount},
-	\"penalty_reserve\": ${penalty_reserve},
-	\"dispute_window\": ${dispute_window},
+\"funding_amount\": ${funding_amount},
+\"penalty_reserve\": ${penalty_reserve},
+\"dispute_window\": ${dispute_window},
 
-	\"dispute_probability\": ${dispute_probability},
+\"dispute_probability\": ${dispute_probability},
 
-	\"payments\": 0,
-	}"
+\"payments\": ${payments_record}
+}"
 
 # \"total_transaction_fees\": ${total_transaction_fees}
 
