@@ -46,7 +46,7 @@ wait-for-node ${bob_node} "ascli getinfo"
 payments_record="{"
 
 # for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
-for ((how_many_payments=1; how_many_payments<=2; how_many_payments++)); do
+for ((how_many_payments=1; how_many_payments<=3; how_many_payments++)); do
 	if [ $how_many_payments -ge 10 ]; then
 		how_many_payments=$((how_many_payments * 1000))
 	fi
@@ -164,7 +164,7 @@ for ((how_many_payments=1; how_many_payments<=2; how_many_payments++)); do
 	printf "Total execution time: %.9f seconds\n" $execution_time
 	echo
 
-	payments_record+="\"${how_many_payments}\": {\"transaction_fees\": ${total_transaction_fees}, \"execution_time\": ${execution_time}},"
+	payments_record+="\"\n${how_many_payments}\": {\"transaction_fees\": ${total_transaction_fees}, \"execution_time\": ${execution_time}},"
 
 	sleep 5
 done
@@ -182,7 +182,7 @@ results_filename=$(basename "$CONFIG_FILE")
 results_filename="${results_filename%.*}"
 
 json_content="{
-\"funding_amount\": ${funding_amount},
+\"funding_amount\": $(echo "$funding_amount" | tr -d '_'),
 \"penalty_reserve\": ${penalty_reserve},
 \"dispute_window\": ${dispute_window},
 
