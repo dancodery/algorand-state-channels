@@ -45,7 +45,7 @@ wait-for-node ${bob_node} "ascli getinfo"
 
 payments_record="{"
 
-for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
+for ((how_many_payments=1; how_many_payments<=5; how_many_payments++)); do
 	if [ $how_many_payments -ge 21 ]; then
 		how_many_payments=$((how_many_payments * 1000))
 	fi
@@ -163,7 +163,7 @@ for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
 	printf "Total execution time: %.9f seconds\n" $execution_time
 	echo
 
-	payments_record+="\" ${how_many_payments}\": {\"transaction_fees\": ${total_transaction_fees}, \"execution_time\": ${execution_time}},"
+	payments_record+="  \"${how_many_payments}\": {\"transaction_fees\": ${total_transaction_fees}, \"execution_time\": ${execution_time}},"
 
 	sleep 5
 done
