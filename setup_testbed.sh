@@ -193,6 +193,7 @@ pos commands launch --name run-container ${alice_node} -- docker run -d --name a
                                             -e ALGOD_ADDRESS="http://${sandbox_ip}:4001" \
                                             -e KMD_ADDRESS="http://${sandbox_ip}:4002" \
                                             -e INDEXER_ADDRESS="http://${sandbox_ip}:8980" \
+                                            -e SEED_PHRASE="auction palm thumb shuffle aim fade cover glass fire spawn course harbor moon decline shed shop envelope virtual visa attitude hand december portion abstract labor" \
                                                 asc-my-node
 
 echo "Starting node ${bob_node}..."
@@ -201,6 +202,7 @@ pos commands launch --name run-container ${bob_node} -- docker run -d --name asc
                                             -e ALGOD_ADDRESS="http://${sandbox_ip}:4001" \
                                             -e KMD_ADDRESS="http://${sandbox_ip}:4002" \
                                             -e INDEXER_ADDRESS="http://${sandbox_ip}:8980" \
+                                            -e SEED_PHRASE="prize struggle destroy tray harvest wear century length thought diagram rubber page bridge weasel same ocean team index skin volume witness record cinnamon able machine" \
                                                 asc-my-node
 
 echo 
