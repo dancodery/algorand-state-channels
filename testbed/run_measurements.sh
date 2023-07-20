@@ -47,10 +47,12 @@ payments_record="{"
 
 for ((how_many_payments=1; how_many_payments<=40; how_many_payments++)); do
 	if [ $how_many_payments -ge 21 ]; then
-		how_many_payments=$(((how_many_payments-20) * 10_000))
+		how_many_payments_final=$(( (how_many_payments - 20) * 10000))
+	else 
+		how_many_payments_final=$how_many_payments
 	fi
 
-	echo "Amount of payments: ${how_many_payments}"
+	echo "Amount of payments: ${how_many_payments_final}"
 	echo "========================="
 	echo 
 
@@ -87,7 +89,7 @@ for ((how_many_payments=1; how_many_payments<=40; how_many_payments++)); do
 	execution_time=$(echo "scale=10; $execution_time + $channel_open_difference" | bc)
 
 	# Make payments from Alice to Bob
-	for ((i=1; i<=${how_many_payments}; i++)); do
+	for ((i=1; i<=${how_many_payments_final}; i++)); do
 		echo
 		echo "Alice paying Bob ${payment_amount} microAlgos (round ${i})..."
 		pay_response=$(run-in-node ${alice_node} "ascli pay --partner_address=${bob_address} --amount=${payment_amount}")
@@ -163,7 +165,7 @@ for ((how_many_payments=1; how_many_payments<=40; how_many_payments++)); do
 	printf "Total execution time: %.9f seconds\n" $execution_time
 	echo
 
-	payments_record+="  \"${how_many_payments}\": {\"transaction_fees\": ${total_transaction_fees}, \"execution_time\": ${execution_time}},"
+	payments_record+="  \"${how_many_payments_final}\": {\"transaction_fees\": ${total_transaction_fees}, \"execution_time\": ${execution_time}},"
 
 	sleep 5
 done
