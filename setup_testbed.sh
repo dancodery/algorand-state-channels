@@ -207,7 +207,7 @@ echo
 
 # 13. Sync nodes
 echo "Syncing nodes..."
-interface="eno5"
+interface="eno4"
 pos commands launch --infile testbed/setup_sync_node.sh --name setup-sync-node ${alice_node}
 pos commands launch --infile testbed/setup_sync_node.sh --name setup-sync-node ${bob_node}
 
