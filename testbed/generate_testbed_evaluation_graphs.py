@@ -32,6 +32,7 @@ plt.ylabel('Transaction Fees Savings (microAlgo)')
 plt.legend(title=f"Dispute Window: {evaluation_results['dispute_window']}, Dispute Probability: {evaluation_results['dispute_probability']}")
 
 plt.xticks(range(1, 21))
+plt.grid(True)
 
 plt.savefig('results/transaction_fees_savings_graph.pdf')
 plt.show()
