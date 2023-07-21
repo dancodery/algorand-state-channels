@@ -11,7 +11,7 @@
  "3": {"transaction_fees": 12000, "execution_time": 18.45577822},  
  "4": {"transaction_fees": 12000, "execution_time": 16.13431832},  
  "5": {"transaction_fees": 12000, "execution_time": 16.09883578},  
- "6": {"transaction_fees": -8000, "execution_time": 12.97520996},  
+ "6": {"transaction_fees": 12000, "execution_time": 14.69482801},  
  "7": {"transaction_fees": 12000, "execution_time": 16.88833756},  
  "8": {"transaction_fees": 12000, "execution_time": 17.10613746},  
  "9": {"transaction_fees": 12000, "execution_time": 13.09180648},  
