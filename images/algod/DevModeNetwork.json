@@ -20,7 +20,7 @@
                 "Online": true
             }
         ],
-        "DevMode": true,
+        "DevMode": false,
         "RewardsPoolBalance": 0
     },
     "Nodes": [
