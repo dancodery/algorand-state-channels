@@ -26,11 +26,10 @@ function wait-for-node () {
 function calculate_runtime_difference() {
 	local response="$1"
 	local runtime_recording=$(echo "$response" | awk -F 'runtime_recording:{' '{print $2}' | sed 's/}[^}]*$//')
-	# local timestamp_start=$(echo "$runtime_recording" | awk -F '[: }]+' '/timestamp_start/{print $3 "." $5}')
 	local timestamp_start=$(echo "$runtime_recording" | awk -F '[: }]+' '/timestamp_start/{printf "%.9f", $3 + $5/1000000000}')
-	# local timestamp_end=$(echo "$runtime_recording" | awk -F '[: }]+' '/timestamp_end/{print $8 "." $10}')
 	local timestamp_end=$(echo "$runtime_recording" | awk -F '[: }]+' '/timestamp_end/{printf "%.9f", $8 + $10/1000000000}')
-	local difference=$(awk -v start="$timestamp_start" -v end="$timestamp_end" 'BEGIN { diff = end - start; print diff }')
+	# local difference=$(awk -v start="$timestamp_start" -v end="$timestamp_end" 'BEGIN { diff = end - start; print diff }')
+	local difference=$(echo "$timestamp_end - $timestamp_start" | bc)
 
 	echo $difference
 }
@@ -90,6 +89,9 @@ for ((how_many_payments=1; how_many_payments<=40; how_many_payments++)); do
 	channel_open_difference=$(calculate_runtime_difference "$channel_open_response")
 	echo "Channel open difference: $channel_open_difference"
 	execution_time=$(echo "scale=10; $execution_time + $channel_open_difference" | bc)
+	if (( $(echo "$execution_time < 1" | bc -l) )); then
+		execution_time="0$execution_time"
+	fi
 	echo "Execution time: $execution_time"
 
 	# Make payments from Alice to Bob
@@ -101,6 +103,9 @@ for ((how_many_payments=1; how_many_payments<=40; how_many_payments++)); do
 		pay_difference=$(calculate_runtime_difference "$pay_response")
 		echo "Pay difference: $pay_difference"
 		execution_time=$(echo "scale=10; $execution_time + $pay_difference" | bc)
+		if (( $(echo "$execution_time < 1" | bc -l) )); then
+			execution_time="0$execution_time"
+		fi
 		echo "Execution time: $execution_time"
 	done
 
