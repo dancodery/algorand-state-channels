@@ -46,7 +46,7 @@ wait-for-node ${bob_node} "ascli getinfo"
 
 payments_record="{"
 
-for ((how_many_payments=1; how_many_payments<=40; how_many_payments++)); do
+for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
 	if [ $how_many_payments -ge 21 ]; then
 		how_many_payments_final=$(( (how_many_payments - 20) * 10))
 	else 
@@ -141,6 +141,9 @@ for ((how_many_payments=1; how_many_payments<=40; how_many_payments++)); do
 		cooperative_close_difference=$(calculate_runtime_difference "$cooperative_close_response")
 		echo "Cooperative close difference: $cooperative_close_difference"
 		execution_time=$(echo "scale=10; $execution_time + $cooperative_close_difference" | bc)
+		if (( $(echo "$execution_time < 1" | bc -l) )); then
+			execution_time="0$execution_time"
+		fi
 		echo "Execution time: $execution_time"
 
 		# # Initiate closing the channel
