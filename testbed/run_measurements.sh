@@ -45,9 +45,9 @@ wait-for-node ${bob_node} "ascli getinfo"
 
 payments_record="{"
 
-for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
+for ((how_many_payments=1; how_many_payments<=40; how_many_payments++)); do
 	if [ $how_many_payments -ge 21 ]; then
-		how_many_payments_final=$(( (how_many_payments - 20) * 100))
+		how_many_payments_final=$(( (how_many_payments - 20) * 10))
 	else 
 		how_many_payments_final=$how_many_payments
 	fi
@@ -55,15 +55,6 @@ for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
 	echo "Amount of payments: ${how_many_payments_final}"
 	echo "========================="
 	echo 
-
-	# # Resetting Alice and Bob's nodes
-	# echo "Resetting Alice and Bob's nodes..."
-	# run-in-node ${alice_node} "ascli reset"
-	# run-in-node ${bob_node} "ascli reset"
-
-	# # Resetting Sandbox
-	# echo "Resetting Sandbox..."
-	# pos commands launch --name sandbox-reset ${sandbox_node} -- ./sandbox/sandbox reset -v
 
 	# Resetting Alice and Bob's nodes
 	echo "Resetting Alice and Bob's nodes..."
