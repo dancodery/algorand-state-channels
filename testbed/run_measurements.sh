@@ -96,17 +96,17 @@ for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
 
 	# Make payments from Alice to Bob
 	for ((i=1; i<=${how_many_payments_final}; i++)); do
-		echo
-		echo "Alice paying Bob ${payment_amount} microAlgos (round ${i})..."
+		# echo
+		# echo "Alice paying Bob ${payment_amount} microAlgos (round ${i})..."
 		pay_response=$(run-in-node ${alice_node} "ascli pay --partner_address=${bob_address} --amount=${payment_amount}")
-		echo $pay_response
+		# echo $pay_response
 		pay_difference=$(calculate_runtime_difference "$pay_response")
-		echo "Pay difference: $pay_difference"
+		# echo "Pay difference: $pay_difference"
 		execution_time=$(echo "scale=10; $execution_time + $pay_difference" | bc)
 		if (( $(echo "$execution_time < 1" | bc -l) )); then
 			execution_time="0$execution_time"
 		fi
-		echo "Execution time: $execution_time"
+		# echo "Execution time: $execution_time"
 	done
 
 	# # Make payments from Bob to Alice
