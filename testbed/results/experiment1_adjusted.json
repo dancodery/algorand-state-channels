@@ -1,29 +1,88 @@
 {
-"funding_amount": 2000000000,
-"penalty_reserve": 100,
-"dispute_window": 3,
-
-"dispute_probability": 0,
-
-"payments": {  
- "1": {"transaction_fees": 12000, "execution_time": 15.4348463}, 
- "2": {"transaction_fees": 12000, "execution_time": 14.75350924},  
- "3": {"transaction_fees": 12000, "execution_time": 18.45577822},  
- "4": {"transaction_fees": 12000, "execution_time": 16.13431832},  
- "5": {"transaction_fees": 12000, "execution_time": 16.09883578},  
- "6": {"transaction_fees": 12000, "execution_time": 14.69482801},  
- "7": {"transaction_fees": 12000, "execution_time": 16.88833756},  
- "8": {"transaction_fees": 12000, "execution_time": 17.10613746},  
- "9": {"transaction_fees": 12000, "execution_time": 13.09180648},  
- "10": {"transaction_fees": 12000, "execution_time": 15.69113669},  
- "11": {"transaction_fees": 12000, "execution_time": 13.90328968},  
- "12": {"transaction_fees": 12000, "execution_time": 14.96486154},  
- "13": {"transaction_fees": 12000, "execution_time": 13.22587736},  
- "14": {"transaction_fees": 12000, "execution_time": 15.46500585},  
- "15": {"transaction_fees": 12000, "execution_time": 15.29812488},  
- "16": {"transaction_fees": 12000, "execution_time": 13.59989808},  
- "17": {"transaction_fees": 12000, "execution_time": 13.06525911},  
- "18": {"transaction_fees": 12000, "execution_time": 16.23238745},  
- "19": {"transaction_fees": 12000, "execution_time": 18.29199476},  
- "20": {"transaction_fees": 12000, "execution_time": 13.84444296}}
+   "funding_amount":2000000000,
+   "penalty_reserve":100,
+   "dispute_window":3,
+   "dispute_probability":0,
+   "payments":{
+      "1":{
+         "transaction_fees":12000,
+         "execution_time":0.259459972
+      },
+      "2":{
+         "transaction_fees":12000,
+         "execution_time":0.256674051
+      },
+      "3":{
+         "transaction_fees":12000,
+         "execution_time":0.277261255
+      },
+      "4":{
+         "transaction_fees":12000,
+         "execution_time":0.265568018
+      },
+      "5":{
+         "transaction_fees":12000,
+         "execution_time":0.266991379
+      },
+      "6":{
+         "transaction_fees":12000,
+         "execution_time":0.257423877
+      },
+      "7":{
+         "transaction_fees":12000,
+         "execution_time":0.249924897
+      },
+      "8":{
+         "transaction_fees":12000,
+         "execution_time":0.254555702
+      },
+      "9":{
+         "transaction_fees":12000,
+         "execution_time":0.273683072
+      },
+      "10":{
+         "transaction_fees":12000,
+         "execution_time":0.285323860
+      },
+      "11":{
+         "transaction_fees":12000,
+         "execution_time":0.265437842
+      },
+      "12":{
+         "transaction_fees":12000,
+         "execution_time":0.276365993
+      },
+      "13":{
+         "transaction_fees":12000,
+         "execution_time":0.274124624
+      },
+      "14":{
+         "transaction_fees":12000,
+         "execution_time":0.319498297
+      },
+      "15":{
+         "transaction_fees":12000,
+         "execution_time":0.299782755
+      },
+      "16":{
+         "transaction_fees":12000,
+         "execution_time":0.291753769
+      },
+      "17":{
+         "transaction_fees":12000,
+         "execution_time":0.279090882
+      },
+      "18":{
+         "transaction_fees":12000,
+         "execution_time":0.318391324
+      },
+      "19":{
+         "transaction_fees":12000,
+         "execution_time":0.276031495
+      },
+      "20":{
+         "transaction_fees":12000,
+         "execution_time":0.283494711
+      }
+   }
 }
