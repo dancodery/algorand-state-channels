@@ -27,9 +27,9 @@ function calculate_runtime_difference() {
 	local response="$1"
 	local runtime_recording=$(echo "$response" | awk -F 'runtime_recording:{' '{print $2}' | sed 's/}[^}]*$//')
 	# local timestamp_start=$(echo "$runtime_recording" | awk -F '[: }]+' '/timestamp_start/{print $3 "." $5}')
-	local timestamp_start=$(echo "$runtime_recording" | awk -F '[: }]+' '/timestamp_start/{printf "%.9f", $3 "." $5}')
+	local timestamp_start=$(echo "$runtime_recording" | awk -F '[: }]+' '/timestamp_start/{printf "%.9f", $3 + $5/1000000000}')
 	# local timestamp_end=$(echo "$runtime_recording" | awk -F '[: }]+' '/timestamp_end/{print $8 "." $10}')
-	local timestamp_end=$(echo "$runtime_recording" | awk -F '[: }]+' '/timestamp_end/{printf "%.9f", $8 "." $10}')
+	local timestamp_end=$(echo "$runtime_recording" | awk -F '[: }]+' '/timestamp_end/{printf "%.9f", $8 + $10/1000000000}')
 	local difference=$(awk -v start="$timestamp_start" -v end="$timestamp_end" 'BEGIN { diff = end - start; print diff }')
 
 	echo $difference
