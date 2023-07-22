@@ -89,6 +89,7 @@ for ((how_many_payments=1; how_many_payments<=40; how_many_payments++)); do
 	echo $channel_open_response
 	channel_open_difference=$(calculate_runtime_difference "$channel_open_response")
 	execution_time=$(echo "scale=10; $execution_time + $channel_open_difference" | bc)
+	echo "Execution time: $execution_time"
 
 	# Make payments from Alice to Bob
 	for ((i=1; i<=${how_many_payments_final}; i++)); do
@@ -98,6 +99,7 @@ for ((how_many_payments=1; how_many_payments<=40; how_many_payments++)); do
 		echo $pay_response
 		pay_difference=$(calculate_runtime_difference "$pay_response")
 		execution_time=$(echo "scale=10; $execution_time + $pay_difference" | bc)
+		echo "Execution time: $execution_time"
 	done
 
 	# # Make payments from Bob to Alice
@@ -131,6 +133,7 @@ for ((how_many_payments=1; how_many_payments<=40; how_many_payments++)); do
 		echo $cooperative_close_response
 		cooperative_close_difference=$(calculate_runtime_difference "$cooperative_close_response")
 		execution_time=$(echo "scale=10; $execution_time + $cooperative_close_difference" | bc)
+		echo "Execution time: $execution_time"
 
 		# # Initiate closing the channel
 		# echo
