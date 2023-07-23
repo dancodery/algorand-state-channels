@@ -127,25 +127,25 @@ done
 # echo "Bob trying to cheat by closing the channel with an old state..."
 # run-in-node asc-bob "ascli trytocheat --partner_address=${alice_address}"
 
-# Bob closes the channel cooperatively
-echo 
-echo "Bob closing the channel cooperatively..."
-run-in-node asc-bob "ascli cooperativeclosechannel --partner_address=${alice_address}"
+# # Bob closes the channel cooperatively
+# echo 
+# echo "Bob closing the channel cooperatively..."
+# run-in-node asc-bob "ascli cooperativeclosechannel --partner_address=${alice_address}"
 
-# # Initiate closing the channel
-# echo
-# echo "Alice initiating channel closing..."
-# run-in-node asc-alice "ascli initiateclosechannel --partner_address=${bob_address}"
+# Initiate closing the channel
+echo
+echo "Alice initiating channel closing..."
+run-in-node asc-alice "ascli initiateclosechannel --partner_address=${bob_address}"
 
-# # sleep for dispute_window * block_time
-# echo
-# echo "Waiting for dispute window to expire: ${dispute_window} * 4 seconds..."
-# sleep $(echo "${dispute_window} * 4" | bc)
+# sleep for dispute_window * block_time
+echo
+echo "Waiting for dispute window to expire: ${dispute_window} * 4 seconds..."
+sleep $(echo "${dispute_window} * 4" | bc)
 
-# # Finalize closing the channel
-# echo
-# echo "Bob finalizing channel closing..."
-# run-in-node asc-alice "ascli finalizeclosechannel --partner_address=${bob_address}"
+# Finalize closing the channel
+echo
+echo "Alice finalizing channel closing..."
+run-in-node asc-alice "ascli finalizeclosechannel --partner_address=${bob_address}"
 
 # Get Alice and Bob's final balances
 alice_final_balance=$(run-in-node asc-alice "ascli getinfo | jq -r .algo_balance") # save Alice's balance as raw string
