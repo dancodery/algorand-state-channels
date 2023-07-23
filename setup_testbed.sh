@@ -218,5 +218,6 @@ pos commands launch --name sync-node ${bob_node} -- phc2sys -s "$interface" -c C
 echo
 
 # 14. Start measurements
+source testbed/run_measurements.sh
 # source testbed/run_measurements.sh > run_measurements_output.log 2>&1 &
-nohup source testbed/run_measurements.sh > run_measurements_output.log 2>&1 &
+# nohup source testbed/run_measurements.sh > run_measurements_output.log 2>&1 &
