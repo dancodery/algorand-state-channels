@@ -57,6 +57,10 @@ for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
 	echo "========================="
 	echo 
 
+	# Resetting Sandbox
+	echo "Resetting Sandbox..."
+	pos commands launch --name sandbox-reset ${sandbox_node} -- ./sandbox/sandbox reset dev -v
+
 	# Resetting Alice and Bob's nodes
 	echo "Resetting Alice and Bob's nodes..."
 	run-in-node ${alice_node} "ascli reset"
