@@ -54,8 +54,8 @@ plt.xticks(range(1, 21))
 plt.axhline(0, color='gray', linestyle='--')
 plt.grid(True)
 
-plt.savefig('results/transaction_time_graph.pdf')
-# plt.savefig('results/transaction_time_savings_graph.pdf')
+# plt.savefig('results/transaction_time_graph.pdf')
+plt.savefig('results/transaction_time_savings_graph.pdf')
 plt.show()
 
 
