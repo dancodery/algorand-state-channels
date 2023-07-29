@@ -81,6 +81,9 @@ for ((i=1; i<=${how_many_payments_final}; i++)); do
 	pay_response=$(run-in-node ${alice_node} "ascli pay --partner_address=${bob_address} --amount=${payment_amount}")
 	echo $pay_response
 	pay_difference=$(calculate_runtime_difference "$pay_response")
+	if (( $(echo "$pay_difference < 1" | bc -l) )); then
+		pay_difference="0$pay_difference"
+	fi
 	echo "Pay difference: $pay_difference"
 	payments_1000_record+="  \"${i}\": {\"execution_time\": ${pay_difference}},"
 done
