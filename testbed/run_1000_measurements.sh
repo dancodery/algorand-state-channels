@@ -104,7 +104,6 @@ echo
 total_transaction_fees=$(echo "${alice_starting_balance} - ${alice_final_balance} + ${bob_starting_balance} - ${bob_final_balance}" | bc)
 echo "Total transaction fees: ${total_transaction_fees} microAlgos"
 echo
-done
 
 # Remove trailing comma and close payments object
 payments_1000_record=${payments_1000_record%?}	
