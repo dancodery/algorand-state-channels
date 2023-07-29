@@ -1,4 +1,5 @@
 #!/bin/bash
+# alias update_testbed='git reset --hard && git pull && chmod +x setup_testbed.sh && nohup ./setup_testbed.sh --config_file=testbed/experiment1.conf dogecoin dogecoincash dogecoingold > run_measurements_output.log 2>&1 &'
 
 ####### DEFINE FUNCTIONS #######
 # Define the help function
