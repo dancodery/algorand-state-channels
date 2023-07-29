@@ -191,8 +191,6 @@ for ((how_many_payments=1; how_many_payments<=20; how_many_payments++)); do
 	echo
 
 	payments_record+="  \"${how_many_payments_final}\": {\"transaction_fees\": ${total_transaction_fees}, \"execution_time\": ${execution_time}},"
-
-	sleep 5
 done
 
 # Remove trailing comma and close payments object
