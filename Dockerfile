@@ -24,11 +24,11 @@ COPY    payment/build_contracts/ /smart_contracts/
 COPY    asd.go server.go client.go rpcserver.go config.go watchtower.go $GOPATH/src/github.com/dancodery/algorand-state-channels/
 
 # build binaries
-RUN go build -o  /bin/ascli cmd/ascli/***
+RUN go build -o /bin/ascli cmd/ascli/***
 RUN go build -o /bin/asd
 
 
-# 2. runtime stage
+# 2. run stage
 FROM debian:bullseye as final
 
 # needed for docker network
