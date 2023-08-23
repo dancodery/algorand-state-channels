@@ -13,7 +13,7 @@ var getInfoCommand = cli.Command{
 		Get information about the node.
 		TODO: add more description here
 	`,
-	Usage:  "getinfo",
+	Usage:  "get algo address and balance of the node",
 	Action: getInfo,
 }
 

@@ -10,7 +10,7 @@ import (
 
 var tryToCheatCommand = cli.Command{
 	Name:  "trytocheat",
-	Usage: "try to cheat",
+	Usage: "try to cheat (only for testing purposes)",
 	Description: `
 
 	`,
