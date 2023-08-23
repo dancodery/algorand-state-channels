@@ -12,8 +12,8 @@ var cooperativecloseChannelCommand = cli.Command{
 	Name:  "cooperativeclosechannel",
 	Usage: "close an existing channel",
 	Description: `
-		Close an existing channel.
-		TODO: add more description here
+		Close an existing channel with a partner cooperatively.
+		Only the algo address of the partner is required.
 	`,
 	Flags: []cli.Flag{
 		cli.StringFlag{

@@ -9,7 +9,7 @@ import (
 
 var resetCommand = cli.Command{
 	Name:        "reset",
-	Description: "reset the node",
+	Description: "deletes all channels and resets the node",
 	Usage:       "deletes all channels and resets the node",
 	Action:      reset,
 }

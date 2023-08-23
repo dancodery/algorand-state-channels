@@ -12,7 +12,8 @@ var tryToCheatCommand = cli.Command{
 	Name:  "trytocheat",
 	Usage: "try to cheat (only for testing purposes)",
 	Description: `
-
+		Try to cheat (only for testing purposes) by submitting an old state commitment to the smart contract on-chain.
+		Only the algo address of the partner is required.
 	`,
 	Flags: []cli.Flag{
 		cli.StringFlag{

@@ -12,8 +12,8 @@ var payCommand = cli.Command{
 	Name:  "pay",
 	Usage: "pay the channel partner",
 	Description: `
-		Pay the channel partner.
-		TODO: add more description here
+		Pay the channel partner off-chain.
+		Only the algo address of the partner and the amount to pay are required.
 	`,
 	ArgsUsage: "amount",
 	Flags: []cli.Flag{

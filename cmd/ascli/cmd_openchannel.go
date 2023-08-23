@@ -13,7 +13,8 @@ var openChannelCommand = cli.Command{
 	Usage: "open a new channel to another node",
 	Description: `
 		Open a new channel to another node.	
-		TODO: add more description here
+		The partner's Algo address, funding amount, penalty reserve, and dispute window are required for the smart contract.
+		The partner's IP address is required for the off-chain communication.
 	`,
 	ArgsUsage: "partner_ip funding_amount penalty_reserve dispute_window",
 	Flags: []cli.Flag{

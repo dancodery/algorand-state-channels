@@ -12,7 +12,8 @@ var finalizeChannelClosingCommand = cli.Command{
 	Name:  "finalizeclosechannel",
 	Usage: "finalize the closing phase of an existing channel",
 	Description: `
-		Finalize the closing phase of an existing channel.
+		Finalize the closing phase of an existing channel on-chain.
+		Only the algo address of the partner is required.
 		`,
 	Flags: []cli.Flag{
 		cli.StringFlag{

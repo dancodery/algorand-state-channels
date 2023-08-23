@@ -12,7 +12,8 @@ var initiateChannelClosingCommand = cli.Command{
 	Name:  "initiateclosechannel",
 	Usage: "initiate the closing phase of an existing channel",
 	Description: `
-		Initiate the closing phase of an existing channel.
+		Initiate the closing phase of an existing channel on-chain.
+		Only the algo address of the partner is required.
 		`,
 	Flags: []cli.Flag{
 		cli.StringFlag{

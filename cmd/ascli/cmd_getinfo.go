@@ -10,8 +10,7 @@ import (
 var getInfoCommand = cli.Command{
 	Name: "getinfo",
 	Description: `
-		Get information about the node.
-		TODO: add more description here
+		Get information about the node, such as its algo address and balance.
 	`,
 	Usage:  "get algo address and balance of the node",
 	Action: getInfo,
