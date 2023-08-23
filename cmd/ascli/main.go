@@ -41,7 +41,7 @@ func printJson(v interface{}) {
 func main() {
 	app := cli.NewApp()
 	app.Name = "ascli"
-	app.Usage = "control plane for asd"
+	app.Usage = "control plane for the Algorand State Channels node"
 	app.Commands = []cli.Command{
 		resetCommand,
 		getInfoCommand,
