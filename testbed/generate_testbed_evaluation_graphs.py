@@ -41,6 +41,7 @@ df_10_200 = df_all[df_all['payment_amount'].between(10, 200) & (df_all['payment_
 # plt.axhline(0, color='gray', linestyle='--')
 # plt.grid(True)
 
+# plt.tight_layout()  # This removes the white margins
 # plt.savefig('results/chapter_6_transaction_fees_savings_1_to_20.pdf')
 # # plt.show()
 
@@ -57,6 +58,7 @@ df_10_200 = df_all[df_all['payment_amount'].between(10, 200) & (df_all['payment_
 # plt.axhline(0, color='gray', linestyle='--')
 # plt.grid(True)
 
+# plt.tight_layout()
 # plt.savefig('results/chapter_6_transaction_time_savings_1_to_20.pdf')
 # # plt.show()
 
@@ -72,6 +74,7 @@ df_10_200 = df_all[df_all['payment_amount'].between(10, 200) & (df_all['payment_
 # plt.xticks(range(1, 21))
 # plt.grid(True)
 
+# plt.tight_layout()
 # plt.savefig('results/chapter_6_transaction_execution_time_1_to_20.pdf')
 # # plt.show()
 
@@ -88,6 +91,7 @@ df_10_200 = df_all[df_all['payment_amount'].between(10, 200) & (df_all['payment_
 # plt.axhline(0, color='gray', linestyle='--')
 # plt.grid(True)
 
+# plt.tight_layout()
 # plt.savefig('results/chapter_6_transaction_fees_savings_10_to_200.pdf')
 # # plt.show()
 
@@ -104,6 +108,7 @@ df_10_200 = df_all[df_all['payment_amount'].between(10, 200) & (df_all['payment_
 # plt.axhline(0, color='gray', linestyle='--')
 # plt.grid(True)
 
+# plt.tight_layout()
 # plt.savefig('results/chapter_6_transaction_time_savings_10_to_200.pdf')
 # # plt.show()
 
@@ -119,6 +124,7 @@ df_10_200 = df_all[df_all['payment_amount'].between(10, 200) & (df_all['payment_
 # plt.xticks(range(10, 201, 10))
 # plt.grid(True)
 
+# plt.tight_layout()
 # plt.savefig('results/chapter_6_transaction_execution_time_10_to_200.pdf')
 # # plt.show()
 
