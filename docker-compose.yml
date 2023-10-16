@@ -48,7 +48,7 @@ services:
       dockerfile: ./images/indexer/Dockerfile
       args:
         URL: "${INDEXER_URL:-https://github.com/algorand/indexer}"
-        BRANCH: "${INDEXER_BRANCH:-main}"
+        BRANCH: "${INDEXER_BRANCH:-master}"
         SHA: "${INDEXER_SHA}"
     networks:
       - payment-channel

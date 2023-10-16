@@ -3,7 +3,7 @@ FROM golang:$GO_VERSION-alpine
 
 # Environment variables used by install.sh
 ARG URL=https://github.com/algorand/indexer
-ARG BRANCH=main
+ARG BRANCH=master
 ARG SHA=""
 
 ENV HOME /opt/indexer
