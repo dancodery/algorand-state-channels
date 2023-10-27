@@ -20,28 +20,28 @@ services:
     build:
       context: .
       dockerfile: ./images/algod/Dockerfile
-      args:
-        CHANNEL: "${ALGOD_CHANNEL:-stable}"
+      args:    
+        CHANNEL: "${ALGOD_CHANNEL}"
         URL: "${ALGOD_URL}"
         BRANCH: "${ALGOD_BRANCH}"
         SHA: "${ALGOD_SHA}"
         BOOTSTRAP_URL: "${NETWORK_BOOTSTRAP_URL}"
         GENESIS_FILE: "${NETWORK_GENESIS_FILE}"
         TEMPLATE: "${NETWORK_TEMPLATE:-images/algod/template.json}"
-        NETWORK_NUM_ROUNDS: "${NETWORK_NUM_ROUNDS:-300000}"
+        NETWORK_NUM_ROUNDS: "${NETWORK_NUM_ROUNDS:-30000}"
         NODE_ARCHIVAL: "${NODE_ARCHIVAL}"
         TOKEN: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
         ALGOD_PORT: "4001"
         KMD_PORT: "4002"
         CDT_PORT: "9392"
         ALGOD_FOLLOWER_PORT: "3999"
-    networks:
+      networks:
       - payment-channel
-    ports:
-      - ${ALGOD_PORT:-4001}:4001
-      - ${KMD_PORT:-4002}:4002
-      - ${CDT_PORT:-9392}:9392
-      - ${ALGOD_FOLLOWER_PORT:-3999}:3999
+      ports:
+        - ${ALGOD_PORT:-4001}:4001
+        - ${KMD_PORT:-4002}:4002
+        - ${CDT_PORT:-9392}:9392
+        - ${ALGOD_FOLLOWER_PORT:-3999}:3999
 
   algorand-indexer:
     container_name: "algorand-indexer"
@@ -49,8 +49,8 @@ services:
       context: .
       dockerfile: ./images/indexer/Dockerfile
       args:
-        URL: "${INDEXER_URL:-https://github.com/algorand/indexer}"
-        BRANCH: "${INDEXER_BRANCH:-main}"
+        URL: "${INDEXER_URL}"
+        BRANCH: "${INDEXER_BRANCH}"
         SHA: "${INDEXER_SHA}"
     networks:
       - payment-channel
@@ -75,6 +75,8 @@ services:
         URL: "${CONDUIT_URL}"
         BRANCH: "${CONDUIT_BRANCH}"
         SHA: "${CONDUIT_SHA}"
+    networks:
+      - payment-channel
     ports:
       - ${CONDUIT_PORT:-3998}:3998
     restart: unless-stopped
@@ -84,6 +86,9 @@ services:
       CONNECTION_STRING: "host=indexer-db port=5432 user=algorand password=algorand dbname=indexer_db sslmode=disable"
       ALGOD_ADDR: "algod:3999"
       ALGOD_ADMIN_TOKEN: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    depends_on:
+      - algorand-indexer-db
+      - algorand-algod
 
   algorand-indexer-db:
     container_name: "algorand-indexer-db"
