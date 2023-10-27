@@ -35,13 +35,13 @@ services:
         KMD_PORT: "4002"
         CDT_PORT: "9392"
         ALGOD_FOLLOWER_PORT: "3999"
-      networks:
+    networks:
       - payment-channel
-      ports:
-        - ${ALGOD_PORT:-4001}:4001
-        - ${KMD_PORT:-4002}:4002
-        - ${CDT_PORT:-9392}:9392
-        - ${ALGOD_FOLLOWER_PORT:-3999}:3999
+    ports:
+      - ${ALGOD_PORT:-4001}:4001
+      - ${KMD_PORT:-4002}:4002
+      - ${CDT_PORT:-9392}:9392
+      - ${ALGOD_FOLLOWER_PORT:-3999}:3999
 
   algorand-indexer:
     container_name: "algorand-indexer"
