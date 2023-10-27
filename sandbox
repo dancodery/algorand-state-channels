@@ -201,7 +201,7 @@ sandbox () {
     goal_helper node status
     statusline "algorand-indexer - health"
     curl -s "localhost:$IPORT/health?pretty"
-    statusline "conduit - imported metric"
+    statusline "algorand-conduit - imported metric"
     curl -s "localhost:$CPORT/metrics"|grep -e "^conduit_imported_round" -e "^Conduit disabled"
   }
 
@@ -493,7 +493,7 @@ sandbox () {
         ;;
     esac
 
-    err "Cannot enter '$CONTAINER'. Available containers: algorand-algod, algorand-indexer, algorand-indexer-db, asc-alice"
+    err "Cannot enter '$CONTAINER'. Available containers: algorand-algod, algorand-conduit, algorand-indexer, algorand-indexer-db, asc-alice"
   }
 
 
