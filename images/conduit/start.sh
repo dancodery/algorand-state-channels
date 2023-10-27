@@ -32,11 +32,12 @@ elif [ ! -f /tmp/conduit ]; then
 else
   /tmp/conduit init --importer algod --exporter postgresql > "${CONDUIT_DATA}"/conduit.yaml
   sed -i \
-    -e "s/netaddr: \"http:\/\/url:port\"/netaddr: \"$ALGOD_ADDR\"/" \
-    -e "s/token: \"\"/token: \"$ALGOD_ADMIN_TOKEN\"/" \
+    -e "s/netaddr: \".*\"/netaddr: \"$ALGOD_ADDR\"/" \
+    -e "s/token: \".*\"/token: \"$ALGOD_ADMIN_TOKEN\"/" \
     -e "s/addr: \":9999\"/addr: \":$PORT\"/" \
     -e "s/mode: OFF/mode: ON/" \
     -e "s/host= port=5432 user= password= dbname=/$CONNECTION_STRING/" \
+    -e "s/retry-delay: \"1s\"/retry-delay: \"0s\"/" \
     "${CONDUIT_DATA}"/conduit.yaml
 
   cat "${CONDUIT_DATA}"/conduit.yaml
