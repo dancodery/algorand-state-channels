@@ -3,15 +3,14 @@ FROM golang:$GO_VERSION-alpine
 
 # Environment variables used by install.sh
 ARG URL=https://github.com/algorand/indexer
-ARG BRANCH=master
+ARG BRANCH=main
 ARG SHA=""
 
 ENV HOME /opt/indexer
 WORKDIR /opt/indexer
 
 ENV DEBIAN_FRONTEND noninteractive
- # TODO delete this line, apk update && \   
-RUN apk add --no-cache git bzip2 make bash libtool boost-dev autoconf automake g++
+RUN apk add --no-cache git make bash
 
 # Copy files to container.
 COPY images/indexer/disabled.go /tmp/disabled.go

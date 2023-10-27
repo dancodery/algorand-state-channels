@@ -34,12 +34,14 @@ services:
         ALGOD_PORT: "4001"
         KMD_PORT: "4002"
         CDT_PORT: "9392"
+        ALGOD_FOLLOWER_PORT: "3999"
     networks:
       - payment-channel
     ports:
       - ${ALGOD_PORT:-4001}:4001
       - ${KMD_PORT:-4002}:4002
       - ${CDT_PORT:-9392}:9392
+      - ${ALGOD_FOLLOWER_PORT:-3999}:3999
 
   algorand-indexer:
     container_name: "algorand-indexer"
@@ -48,7 +50,7 @@ services:
       dockerfile: ./images/indexer/Dockerfile
       args:
         URL: "${INDEXER_URL:-https://github.com/algorand/indexer}"
-        BRANCH: "${INDEXER_BRANCH:-master}"
+        BRANCH: "${INDEXER_BRANCH:-main}"
         SHA: "${INDEXER_SHA}"
     networks:
       - payment-channel
@@ -58,14 +60,30 @@ services:
     environment:
       DISABLED: "${INDEXER_DISABLED}"
       PORT: "8980"
-      SNAPSHOT: ""
       CONNECTION_STRING: "host=algorand-indexer-db port=5432 user=algorand password=algorand dbname=indexer_db sslmode=disable"
-      ALGOD_ADDR: "algorand-algod:4001"
-      ALGOD_TOKEN: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       INDEXER_ENABLE_ALL_PARAMETERS: "${INDEXER_ENABLE_ALL_PARAMETERS:-false}"
     depends_on:
-      - algorand-indexer-db
       - algorand-algod
+      - algorand-conduit
+
+  algorand-conduit:
+    container_name: "algorand-conduit}"
+    build:
+      context: .
+      dockerfile: ./images/conduit/Dockerfile
+      args:
+        URL: "${CONDUIT_URL}"
+        BRANCH: "${CONDUIT_BRANCH}"
+        SHA: "${CONDUIT_SHA}"
+    ports:
+      - ${CONDUIT_PORT:-3998}:3998
+    restart: unless-stopped
+    environment:
+      DISABLED: "${CONDUIT_DISABLED}"
+      PORT: "3998"
+      CONNECTION_STRING: "host=indexer-db port=5432 user=algorand password=algorand dbname=indexer_db sslmode=disable"
+      ALGOD_ADDR: "algod:3999"
+      ALGOD_ADMIN_TOKEN: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 
   algorand-indexer-db:
     container_name: "algorand-indexer-db"
