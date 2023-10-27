@@ -67,7 +67,7 @@ services:
       - algorand-conduit
 
   algorand-conduit:
-    container_name: "algorand-conduit}"
+    container_name: "algorand-conduit"
     build:
       context: .
       dockerfile: ./images/conduit/Dockerfile
