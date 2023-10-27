@@ -83,8 +83,8 @@ services:
     environment:
       DISABLED: "${CONDUIT_DISABLED}"
       PORT: "3998"
-      CONNECTION_STRING: "host=indexer-db port=5432 user=algorand password=algorand dbname=indexer_db sslmode=disable"
-      ALGOD_ADDR: "algod:3999"
+      CONNECTION_STRING: "host=algorand-indexer-db port=5432 user=algorand password=algorand dbname=indexer_db sslmode=disable"
+      ALGOD_ADDR: "algorand-algod:3999"
       ALGOD_ADMIN_TOKEN: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
     depends_on:
       - algorand-indexer-db
