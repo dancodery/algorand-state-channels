@@ -1,7 +1,7 @@
 # Warning:
 I had to do this project for the Technical University of Munich because the chair was sponsored by the Algorand Foundation.
 I do not recommend the Algorand ecosystem or cryptocurrency to anyone, have never recommended it, and do not represent the values of Algorand nor its founder.
-** BUY BITCOIN **
+<br>**BUY BITCOIN**
 
 # algorand-state-channels
 
